@@ -1,6 +1,6 @@
-use bevy::{ecs::system::SystemParam, prelude::*, tasks::ComputeTaskPool};
+use bevy::{ecs::system::SystemParam, prelude::*};
 use bevy_ecs_tilemap::{
-    LayerBuilder, LayerSettings, Map, MapQuery, Tile, TileBundle, TilemapPlugin,
+    Chunk, LayerBuilder, LayerSettings, Map, MapQuery, Tile, TileBundle, TilemapPlugin,
 };
 
 pub const CHUNK_WIDTH: u32 = 10;
@@ -24,7 +24,15 @@ pub struct AsciiTilemapPlugin;
 impl Plugin for AsciiTilemapPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_plugin(TilemapPlugin)
-            .add_startup_system(tilemap_setup.system());
+            .add_startup_system(tilemap_setup.system())
+            .add_system(update_chunks.system());
+    }
+}
+
+/// Forces the chunks to rerender on each frame
+fn update_chunks(mut chunk_query: Query<&mut Chunk>) {
+    for mut chunk in chunk_query.iter_mut() {
+        chunk.needs_remesh = true;
     }
 }
 
@@ -75,8 +83,7 @@ fn tilemap_setup(
 #[derive(SystemParam)]
 pub struct DrawContext<'a> {
     pub map_query: MapQuery<'a>,
-    pub tile_query: Query<'a, &'static mut bevy_ecs_tilemap::Tile>,
-    pub pool: Res<'a, ComputeTaskPool>,
+    pub tile_query: Query<'a, &'static mut Tile>,
 }
 
 impl<'a> DrawContext<'a> {
