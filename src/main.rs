@@ -1,7 +1,8 @@
-use ascii_tilemap_plugin::{DrawContext, PIXEL_HEIGHT, PIXEL_WIDTH};
+use ascii_tilemap_plugin::{PIXEL_HEIGHT, PIXEL_WIDTH};
 use bevy::prelude::*;
 
 mod ascii_tilemap_plugin;
+mod flappy_plugin;
 
 // TODO
 // * use layers for background and foreground
@@ -18,11 +19,6 @@ fn main() {
         })
         .add_plugins(DefaultPlugins)
         .add_plugin(ascii_tilemap_plugin::AsciiTilemapPlugin)
-        .add_system(update.system())
+        .add_plugin(flappy_plugin::FlappyPlugin)
         .run();
-}
-
-fn update(mut ctx: DrawContext) {
-    ctx.cls();
-    ctx.print(0, 0, "Hello bevy_ecs_tilemap hands-on");
 }

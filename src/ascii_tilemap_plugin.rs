@@ -99,6 +99,11 @@ impl<'a> DrawContext<'a> {
         }
     }
 
+    /// prints a string centered on the x axis
+    pub fn print_centered(&mut self, y: usize, text: &str) {
+        self.print((WIDTH / 2) - (text.to_string().len() / 2), y, text);
+    }
+
     /// Clears the screen
     pub fn cls(&mut self) {
         for mut tile in self.tile_query.iter_mut() {
