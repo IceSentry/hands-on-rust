@@ -91,24 +91,30 @@ impl<'a> DrawContext<'a> {
     /// if the string is longer than the viewport it will get truncated, wrapping is not handled
     pub fn print(&mut self, x: usize, y: usize, output: &str) {
         for (i, char) in output.chars().enumerate() {
-            if x + i >= WIDTH {
-                return;
-            }
-            // This makes sure the origin is at the top left of the tilemap
-            let position = UVec2::new((x + i) as u32, HEIGHT as u32 - 1 - y as u32);
-            let tile_entity = self
-                .map_query
-                .get_tile_entity(position, 0u16, 0u16)
-                .unwrap_or_else(|_| panic!("tile not found at {} ", position));
-            if let Ok(mut tile) = self.tile_query.get_mut(tile_entity) {
-                tile.texture_index = char as u16;
-            }
+            self.set(x + i, y, char);
         }
     }
 
     /// prints a string centered on the x axis
     pub fn print_centered(&mut self, y: usize, text: &str) {
         self.print((WIDTH / 2) - (text.to_string().len() / 2), y, text);
+    }
+
+    /// sets a tile to a specific character
+    /// TODO add background and foreground colors
+    pub fn set(&mut self, x: usize, y: usize, char: char) {
+        if x >= WIDTH || y >= HEIGHT {
+            return;
+        }
+        // This makes sure the origin is at the top left of the tilemap
+        let position = UVec2::new(x as u32, HEIGHT as u32 - 1 - y as u32);
+        let tile_entity = self
+            .map_query
+            .get_tile_entity(position, 0u16, 0u16)
+            .unwrap_or_else(|_| panic!("tile not found at {} ", position));
+        if let Ok(mut tile) = self.tile_query.get_mut(tile_entity) {
+            tile.texture_index = char as u16;
+        }
     }
 
     /// Clears the screen
