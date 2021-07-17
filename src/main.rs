@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments, clippy::type_complexity)]
+
 use ascii_tilemap_plugin::{PIXEL_HEIGHT, PIXEL_WIDTH};
 use bevy::prelude::*;
 
