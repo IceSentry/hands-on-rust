@@ -3,6 +3,8 @@ use bevy_ecs_tilemap::{
     Chunk, LayerBuilder, LayerSettings, Map, MapQuery, Tile, TileBundle, TilemapPlugin,
 };
 
+/// TODO add background layer
+
 pub const CHUNK_WIDTH: u32 = 10;
 pub const CHUNK_HEIGHT: u32 = 10;
 pub const MAP_WIDTH: u32 = 8;
@@ -91,7 +93,7 @@ impl<'a> DrawContext<'a> {
     /// if the string is longer than the viewport it will get truncated, wrapping is not handled
     pub fn print(&mut self, x: usize, y: usize, output: &str) {
         for (i, char) in output.chars().enumerate() {
-            self.set(x + i, y, char);
+            self.set(x + i, y, Color::WHITE, char);
         }
     }
 
@@ -101,8 +103,8 @@ impl<'a> DrawContext<'a> {
     }
 
     /// sets a tile to a specific character
-    /// TODO add background and foreground colors
-    pub fn set(&mut self, x: usize, y: usize, char: char) {
+
+    pub fn set(&mut self, x: usize, y: usize, foreground: Color, char: char) {
         if x >= WIDTH || y >= HEIGHT {
             return;
         }
@@ -114,6 +116,7 @@ impl<'a> DrawContext<'a> {
             .unwrap_or_else(|_| panic!("tile not found at {} ", position));
         if let Ok(mut tile) = self.tile_query.get_mut(tile_entity) {
             tile.texture_index = char as u16;
+            tile.color = foreground;
         }
     }
 
