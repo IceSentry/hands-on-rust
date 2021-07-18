@@ -5,6 +5,7 @@ use bevy::prelude::*;
 
 mod ascii_tilemap_plugin;
 mod flappy_plugin;
+mod rusty_dungeon_plugin;
 
 // TODO
 // * use layers for background and foreground
@@ -21,6 +22,7 @@ fn main() {
         })
         .add_plugins(DefaultPlugins)
         .add_plugin(ascii_tilemap_plugin::AsciiTilemapPlugin)
-        .add_plugin(flappy_plugin::FlappyPlugin)
+        // .add_plugin(flappy_plugin::FlappyPlugin)
+        .add_plugin(rusty_dungeon_plugin::RustyDungeonPlugin)
         .run();
 }
