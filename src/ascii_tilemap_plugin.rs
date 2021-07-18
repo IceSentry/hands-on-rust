@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use bevy::{ecs::system::SystemParam, prelude::*};
 use bevy_ecs_tilemap::{
     Chunk, LayerBuilder, LayerSettings, Map, MapQuery, Tile, TileBundle, TilemapPlugin,
@@ -20,6 +22,9 @@ pub const PIXEL_HEIGHT: usize = HEIGHT * TILE_HEIGHT;
 
 pub const TEXTURE_WIDTH: usize = TILE_WIDTH * 16;
 pub const TEXTURE_HEIGHT: usize = TILE_HEIGHT * 16;
+
+const BACKGROUND_LAYER_ID: u16 = 0;
+const FOREGROUND_LAYER_ID: u16 = 1;
 
 pub struct AsciiTilemapPlugin;
 
@@ -59,17 +64,27 @@ fn tilemap_setup(
         Vec2::new(TEXTURE_WIDTH as f32, TEXTURE_HEIGHT as f32),
     );
 
-    let (mut layer_builder, _) = LayerBuilder::new(&mut commands, layer_settings, 0u16, 0u16, None);
-    layer_builder.set_all(TileBundle::new(
-        Tile {
-            texture_index: '.' as u16,
-            ..Default::default()
-        },
-        UVec2::default(),
-    ));
-    let layer_entity = map_query.build_layer(&mut commands, layer_builder, material_handle);
+    let (mut layer_builder, _) = LayerBuilder::new(
+        &mut commands,
+        layer_settings,
+        0u16,
+        BACKGROUND_LAYER_ID,
+        None,
+    );
+    layer_builder.set_all(TileBundle::default());
+    let layer_entity = map_query.build_layer(&mut commands, layer_builder, material_handle.clone());
+    map.add_layer(&mut commands, BACKGROUND_LAYER_ID, layer_entity);
 
-    map.add_layer(&mut commands, 0u16, layer_entity);
+    let (mut layer_builder, _) = LayerBuilder::new(
+        &mut commands,
+        layer_settings,
+        0u16,
+        FOREGROUND_LAYER_ID,
+        None,
+    );
+    layer_builder.set_all(TileBundle::default());
+    let layer_entity = map_query.build_layer(&mut commands, layer_builder, material_handle);
+    map.add_layer(&mut commands, FOREGROUND_LAYER_ID, layer_entity);
 
     commands
         .entity(map_entity)
@@ -91,9 +106,22 @@ pub struct DrawContext<'a> {
 impl<'a> DrawContext<'a> {
     /// Prints a string at the given position
     /// if the string is longer than the viewport it will get truncated, wrapping is not handled
-    pub fn print(&mut self, x: usize, y: usize, output: &str) {
-        for (i, char) in output.chars().enumerate() {
-            self.set(x + i, y, Color::WHITE, char);
+    pub fn print(&mut self, x: usize, y: usize, text: &str) {
+        self.print_color(x, y, Color::BLACK, Color::WHITE, text);
+    }
+
+    /// Prints a string at the given position with foreground and background color
+    /// if the string is longer than the viewport it will get truncated, wrapping is not handled
+    pub fn print_color(
+        &mut self,
+        x: usize,
+        y: usize,
+        background: Color,
+        foreground: Color,
+        text: &str,
+    ) {
+        for (i, char) in text.chars().enumerate() {
+            self.set(x + i, y, background, foreground, char);
         }
     }
 
@@ -102,19 +130,33 @@ impl<'a> DrawContext<'a> {
         self.print((WIDTH / 2) - (text.to_string().len() / 2), y, text);
     }
 
-    /// sets a tile to a specific character
+    /// prints a string centered on the x axis with foreground and background color
+    pub fn print_color_centered(&mut self, y: usize, text: &str) {
+        self.print((WIDTH / 2) - (text.to_string().len() / 2), y, text);
+    }
 
-    pub fn set(&mut self, x: usize, y: usize, foreground: Color, char: char) {
+    /// sets a tile to a specific character
+    pub fn set(&mut self, x: usize, y: usize, background: Color, foreground: Color, char: char) {
         if x >= WIDTH || y >= HEIGHT {
             return;
         }
+
         // This makes sure the origin is at the top left of the tilemap
         let position = UVec2::new(x as u32, HEIGHT as u32 - 1 - y as u32);
-        let tile_entity = self
+
+        let background_tile_entity = self
             .map_query
-            .get_tile_entity(position, 0u16, 0u16)
+            .get_tile_entity(position, 0u16, BACKGROUND_LAYER_ID)
             .unwrap_or_else(|_| panic!("tile not found at {} ", position));
-        if let Ok(mut tile) = self.tile_query.get_mut(tile_entity) {
+        if let Ok(mut tile) = self.tile_query.get_mut(background_tile_entity) {
+            tile.color = background;
+        }
+
+        let foreground_tile_entity = self
+            .map_query
+            .get_tile_entity(position, 0u16, FOREGROUND_LAYER_ID)
+            .unwrap_or_else(|_| panic!("tile not found at {} ", position));
+        if let Ok(mut tile) = self.tile_query.get_mut(foreground_tile_entity) {
             tile.texture_index = char as u16;
             tile.color = foreground;
         }
@@ -122,8 +164,14 @@ impl<'a> DrawContext<'a> {
 
     /// Clears the screen
     pub fn cls(&mut self) {
+        self.cls_color(Color::BLACK);
+    }
+
+    /// Clears the screen with a specific color
+    pub fn cls_color(&mut self, color: Color) {
         for mut tile in self.tile_query.iter_mut() {
-            tile.texture_index = 0;
+            tile.texture_index = 219; // ASCII code 219 = █ ( Block, graphic character )
+            tile.color = color;
         }
     }
 }

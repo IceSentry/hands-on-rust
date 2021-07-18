@@ -55,7 +55,7 @@ impl Player {
     }
 
     fn render(&self, ctx: &mut DrawContext) {
-        ctx.set(0, self.y, Color::YELLOW, 1 as char);
+        ctx.set(0, self.y, Color::RED, Color::YELLOW, 1 as char);
     }
 
     fn gravity_and_move(&mut self) {
@@ -94,11 +94,11 @@ impl Obstacle {
         let char = 177 as char; // ASCII code 177 = ▒ ( Graphic character, medium density dotted )
 
         for y in 0..self.gap_y - half_size {
-            ctx.set(screen_x, y, Color::GREEN, char);
+            ctx.set(screen_x, y, Color::BLACK, Color::GREEN, char);
         }
 
         for y in self.gap_y + half_size..HEIGHT {
-            ctx.set(screen_x, y, Color::GREEN, char);
+            ctx.set(screen_x, y, Color::BLACK, Color::GREEN, char);
         }
     }
 
