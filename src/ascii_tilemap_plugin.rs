@@ -5,8 +5,6 @@ use bevy_ecs_tilemap::{
     Chunk, LayerBuilder, LayerSettings, Map, MapQuery, Tile, TileBundle, TilemapPlugin,
 };
 
-/// TODO add background layer
-
 pub const CHUNK_WIDTH: u32 = 10;
 pub const CHUNK_HEIGHT: u32 = 10;
 pub const MAP_WIDTH: u32 = 8;
