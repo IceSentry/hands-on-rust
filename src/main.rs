@@ -14,7 +14,7 @@ mod rusty_dungeon_plugin;
 fn main() {
     App::build()
         .insert_resource(WindowDescriptor {
-            title: String::from("hands on flappy"),
+            title: String::from("hands on dungeon crawler"),
             resizable: false,
             width: PIXEL_WIDTH as f32,
             height: PIXEL_HEIGHT as f32,

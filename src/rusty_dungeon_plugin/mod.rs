@@ -1,15 +1,30 @@
+use crate::ascii_tilemap_plugin::{DrawContext, HEIGHT, WIDTH};
 use bevy::prelude::*;
 
-use crate::ascii_tilemap_plugin::DrawContext;
+mod map;
+mod player;
+
+use map::Map;
+use player::Player;
 
 pub struct RustyDungeonPlugin;
 
 impl Plugin for RustyDungeonPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_system(hello.system());
+        app.insert_resource(Map::new())
+            .insert_resource(Player::new(WIDTH / 2, HEIGHT / 2))
+            .add_system(update.system());
     }
 }
 
-fn hello(mut ctx: DrawContext) {
-    ctx.print(0, 0, "Hello World!");
+fn update(
+    map: Res<Map>,
+    mut player: ResMut<Player>,
+    mut ctx: DrawContext,
+    keyboard_input: Res<Input<KeyCode>>,
+) {
+    ctx.cls();
+    player.update(&map, &keyboard_input);
+    map.render(&mut ctx);
+    player.render(&mut ctx)
 }
