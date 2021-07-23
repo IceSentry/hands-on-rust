@@ -1,6 +1,6 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
-use ascii_tilemap_plugin::{PIXEL_HEIGHT, PIXEL_WIDTH};
+use ascii_tilemap_plugin::{AsciiTilemapPlugin, AsciiTilemapSettings, WINDOW_HEIGHT, WINDOW_WIDTH};
 use bevy::prelude::*;
 
 mod ascii_tilemap_plugin;
@@ -16,12 +16,15 @@ fn main() {
         .insert_resource(WindowDescriptor {
             title: String::from("hands on dungeon crawler"),
             resizable: false,
-            width: PIXEL_WIDTH as f32,
-            height: PIXEL_HEIGHT as f32,
+            width: WINDOW_WIDTH as f32,
+            height: WINDOW_HEIGHT as f32,
             ..Default::default()
         })
         .add_plugins(DefaultPlugins)
-        .add_plugin(ascii_tilemap_plugin::AsciiTilemapPlugin)
+        .add_plugin(AsciiTilemapPlugin)
+        .insert_resource(AsciiTilemapSettings {
+            tilemap_asset_path: "16x16-sb-ascii.png",
+        })
         // .add_plugin(flappy_plugin::FlappyPlugin)
         .add_plugin(rusty_dungeon_plugin::RustyDungeonPlugin)
         .run();

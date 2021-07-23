@@ -1,35 +1,43 @@
 #![allow(unused)]
 
-use bevy::{ecs::system::SystemParam, prelude::*};
+use bevy::{asset::AssetPath, ecs::system::SystemParam, prelude::*};
 use bevy_ecs_tilemap::{
     Chunk, LayerBuilder, LayerSettings, Map, MapQuery, Tile, TileBundle, TilemapPlugin,
 };
 
-pub const CHUNK_WIDTH: u32 = 10;
-pub const CHUNK_HEIGHT: u32 = 10;
-pub const MAP_WIDTH: u32 = 8;
-pub const MAP_HEIGHT: u32 = 5;
+pub mod geometry;
+
+const CHUNK_WIDTH: u32 = 10;
+const CHUNK_HEIGHT: u32 = 10;
+
+const MAP_WIDTH: u32 = 8;
+const MAP_HEIGHT: u32 = 5;
+
+const TILE_WIDTH: usize = 16;
+const TILE_HEIGHT: usize = 16;
+
+const TEXTURE_WIDTH: usize = TILE_WIDTH * 16;
+const TEXTURE_HEIGHT: usize = TILE_HEIGHT * 16;
+
 pub const WIDTH: usize = MAP_WIDTH as usize * CHUNK_WIDTH as usize;
 pub const HEIGHT: usize = MAP_HEIGHT as usize * CHUNK_HEIGHT as usize;
 
-pub const TILE_WIDTH: usize = 16;
-pub const TILE_HEIGHT: usize = 16;
-
-pub const PIXEL_WIDTH: usize = WIDTH * TILE_WIDTH;
-pub const PIXEL_HEIGHT: usize = HEIGHT * TILE_HEIGHT;
-
-pub const TEXTURE_WIDTH: usize = TILE_WIDTH * 16;
-pub const TEXTURE_HEIGHT: usize = TILE_HEIGHT * 16;
+pub const WINDOW_WIDTH: usize = WIDTH * TILE_WIDTH;
+pub const WINDOW_HEIGHT: usize = HEIGHT * TILE_HEIGHT;
 
 const BACKGROUND_LAYER_ID: u16 = 0;
 const FOREGROUND_LAYER_ID: u16 = 1;
 
 pub struct AsciiTilemapPlugin;
 
+pub struct AsciiTilemapSettings {
+    pub tilemap_asset_path: &'static str,
+}
+
 impl Plugin for AsciiTilemapPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_plugin(TilemapPlugin)
-            .add_startup_system(tilemap_setup.system())
+            .add_startup_system(setup.system())
             .add_system(update_chunks.system());
     }
 }
@@ -41,15 +49,16 @@ fn update_chunks(mut chunk_query: Query<&mut Chunk>) {
     }
 }
 
-fn tilemap_setup(
+fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    settings: Res<AsciiTilemapSettings>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut map_query: MapQuery,
 ) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
 
-    let texture_handle = asset_server.load("16x16-sb-ascii.png");
+    let texture_handle = asset_server.load(settings.tilemap_asset_path);
     let material_handle = materials.add(ColorMaterial::texture(texture_handle));
 
     let map_entity = commands.spawn().id();
@@ -62,34 +71,23 @@ fn tilemap_setup(
         Vec2::new(TEXTURE_WIDTH as f32, TEXTURE_HEIGHT as f32),
     );
 
-    let (mut layer_builder, _) = LayerBuilder::new(
-        &mut commands,
-        layer_settings,
-        0u16,
-        BACKGROUND_LAYER_ID,
-        None,
-    );
-    layer_builder.set_all(TileBundle::default());
-    let layer_entity = map_query.build_layer(&mut commands, layer_builder, material_handle.clone());
-    map.add_layer(&mut commands, BACKGROUND_LAYER_ID, layer_entity);
+    let mut build_layer = |layer_id| {
+        let (mut layer_builder, layer_entity) =
+            LayerBuilder::new(&mut commands, layer_settings, 0u16, layer_id, None);
+        layer_builder.set_all(TileBundle::default());
+        map_query.build_layer(&mut commands, layer_builder, material_handle.clone());
+        map.add_layer(&mut commands, layer_id, layer_entity);
+    };
 
-    let (mut layer_builder, _) = LayerBuilder::new(
-        &mut commands,
-        layer_settings,
-        0u16,
-        FOREGROUND_LAYER_ID,
-        None,
-    );
-    layer_builder.set_all(TileBundle::default());
-    let layer_entity = map_query.build_layer(&mut commands, layer_builder, material_handle);
-    map.add_layer(&mut commands, FOREGROUND_LAYER_ID, layer_entity);
+    build_layer(BACKGROUND_LAYER_ID);
+    build_layer(FOREGROUND_LAYER_ID);
 
     commands
         .entity(map_entity)
         .insert(map)
         .insert(Transform::from_xyz(
-            -((PIXEL_WIDTH / 2) as f32),
-            -((PIXEL_HEIGHT / 2) as f32),
+            -((WINDOW_WIDTH / 2) as f32),
+            -((WINDOW_HEIGHT / 2) as f32),
             0.0,
         ))
         .insert(GlobalTransform::default());
