@@ -1,20 +1,32 @@
-use crate::ascii_tilemap_plugin::{DrawContext, HEIGHT, WIDTH};
-use bevy::prelude::*;
+use crate::{ascii_tilemap_plugin::DrawContext, HEIGHT, WIDTH};
+use bevy::{
+    diagnostic::{Diagnostic, Diagnostics, FrameTimeDiagnosticsPlugin},
+    prelude::*,
+};
 
 mod map;
 mod player;
 
-use map::Map;
+use map::{Map, MapBuilder};
 use player::Player;
 
-use self::map::MapBuilder;
+#[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
+enum Stage {
+    AfterUpdate,
+}
 
 pub struct RustyDungeonPlugin;
 
 impl Plugin for RustyDungeonPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_startup_system(startup.system())
-            .add_system(update.system());
+            .add_stage_after(
+                CoreStage::Update,
+                Stage::AfterUpdate,
+                SystemStage::parallel(),
+            )
+            .add_system(update.system())
+            .add_system_to_stage(Stage::AfterUpdate, diagnostic.system());
     }
 }
 
@@ -41,5 +53,14 @@ fn update(
     ctx.cls();
     player.update(&map, &keyboard_input);
     map.render(&mut ctx);
-    player.render(&mut ctx)
+    player.render(&mut ctx);
 }
+
+fn diagnostic(mut ctx: DrawContext, diagnostics: ResMut<Diagnostics>) {
+    let fps = diagnostics
+        .get(FrameTimeDiagnosticsPlugin::FPS)
+        .and_then(Diagnostic::average);
+    if let Some(fps) = fps {
+        ctx.print(0, 0, &format!("FPS {:.0}", fps));
+    }
+}
