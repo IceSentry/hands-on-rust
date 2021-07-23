@@ -7,14 +7,28 @@ mod player;
 use map::Map;
 use player::Player;
 
+use self::map::MapBuilder;
+
 pub struct RustyDungeonPlugin;
 
 impl Plugin for RustyDungeonPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.insert_resource(Map::new())
-            .insert_resource(Player::new(WIDTH / 2, HEIGHT / 2))
+        app.add_startup_system(startup.system())
             .add_system(update.system());
     }
+}
+
+const NUM_ROOMS: usize = 20;
+
+fn startup(mut commands: Commands) {
+    let mut rng = fastrand::Rng::new();
+    rng.seed(42);
+    let (map, player_start) = MapBuilder::new(NUM_ROOMS).build(WIDTH, HEIGHT, &mut rng);
+    commands.insert_resource(map);
+    commands.insert_resource(Player::new(
+        player_start.x as usize,
+        player_start.y as usize,
+    ));
 }
 
 fn update(
