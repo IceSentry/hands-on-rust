@@ -1,6 +1,6 @@
 use bevy::{app::AppExit, prelude::*};
 
-use crate::ascii_tilemap_plugin::{DrawContext, HEIGHT, WIDTH};
+use crate::{ascii_tilemap_plugin::DrawContext, HEIGHT, WIDTH};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 enum GameState {
@@ -27,7 +27,7 @@ impl Plugin for FlappyPlugin {
             .insert_resource(Player::new(5, 25))
             .insert_resource(FrameTime(0.0))
             .insert_resource(Score(0))
-            .insert_resource(Obstacle::new(WIDTH, 0));
+            .insert_resource(Obstacle::new(WIDTH as usize, 0));
     }
 }
 
@@ -97,7 +97,7 @@ impl Obstacle {
             ctx.set(screen_x, y, Color::BLACK, Color::GREEN, char);
         }
 
-        for y in self.gap_y + half_size..HEIGHT {
+        for y in self.gap_y + half_size..HEIGHT as usize {
             ctx.set(screen_x, y, Color::BLACK, Color::GREEN, char);
         }
     }
@@ -128,7 +128,7 @@ fn restart(
     info!("Restarting...");
     state.set(GameState::Playing).expect("failed to set state");
     *player = Player::new(5, 25);
-    *obstacle = Obstacle::new(WIDTH, 0);
+    *obstacle = Obstacle::new(WIDTH as usize, 0);
     score.0 = 0;
 }
 
@@ -178,10 +178,10 @@ fn play(
     obstacle.render(&mut ctx, player.x);
     if player.x > obstacle.x {
         score.0 += 1;
-        *obstacle = Obstacle::new(player.x + WIDTH, score.0);
+        *obstacle = Obstacle::new(player.x + WIDTH as usize, score.0);
     }
 
-    if player.y > HEIGHT || obstacle.hit(&player) {
+    if player.y > HEIGHT as usize || obstacle.hit(&player) {
         state.set(GameState::End).expect("failed to set state");
     }
 }

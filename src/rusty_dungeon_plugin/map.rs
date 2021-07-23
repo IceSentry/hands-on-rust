@@ -1,4 +1,7 @@
-use crate::ascii_tilemap_plugin::{self, DrawContext, HEIGHT, WIDTH};
+use crate::{
+    ascii_tilemap_plugin::{self, DrawContext},
+    HEIGHT, WIDTH,
+};
 use bevy::prelude::*;
 use fastrand::Rng;
 
@@ -15,7 +18,7 @@ pub struct Map {
 
 impl Default for Map {
     fn default() -> Self {
-        Self::new(WIDTH, HEIGHT)
+        Self::new(WIDTH as usize, HEIGHT as usize)
     }
 }
 
@@ -27,8 +30,8 @@ impl Map {
     }
 
     pub fn render(&self, ctx: &mut DrawContext) {
-        for y in 0..HEIGHT {
-            for x in 0..WIDTH {
+        for y in 0..HEIGHT as usize {
+            for x in 0..WIDTH as usize {
                 let index = Map::index(x, y);
                 match self.tiles[index] {
                     TileType::Floor => ctx.set(x, y, Color::BLACK, Color::YELLOW, '.'),
@@ -39,7 +42,7 @@ impl Map {
     }
 
     pub fn in_bounds(&self, point: UVec2) -> bool {
-        (point.x as usize) < WIDTH && (point.y as usize) < HEIGHT
+        (point.x as usize) < WIDTH as usize && (point.y as usize) < HEIGHT as usize
     }
 
     pub fn can_enter_tile(&self, point: UVec2) -> bool {
@@ -56,7 +59,7 @@ impl Map {
     }
 
     fn index(x: usize, y: usize) -> usize {
-        (y * WIDTH) + x
+        (y * WIDTH as usize) + x
     }
 }
 
@@ -74,8 +77,8 @@ impl MapBuilder {
     fn build_random_rooms(&mut self, map: &mut Map, rng: &mut Rng) {
         while self.rooms.len() < self.rooms.capacity() {
             let room = ascii_tilemap_plugin::geometry::Rect::with_dimension(
-                rng.usize(1..WIDTH - 10),
-                rng.usize(1..HEIGHT - 10),
+                rng.usize(1..WIDTH as usize - 10),
+                rng.usize(1..HEIGHT as usize - 10),
                 rng.usize(2..10),
                 rng.usize(2..10),
             );

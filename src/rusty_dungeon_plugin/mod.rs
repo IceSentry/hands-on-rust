@@ -23,7 +23,8 @@ const NUM_ROOMS: usize = 20;
 fn startup(mut commands: Commands) {
     let mut rng = fastrand::Rng::new();
     rng.seed(42);
-    let (map, player_start) = MapBuilder::new(NUM_ROOMS).build(WIDTH, HEIGHT, &mut rng);
+    let (map, player_start) =
+        MapBuilder::new(NUM_ROOMS).build(WIDTH as usize, HEIGHT as usize, &mut rng);
     commands.insert_resource(map);
     commands.insert_resource(Player::new(
         player_start.x as usize,

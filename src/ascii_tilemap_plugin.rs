@@ -7,31 +7,55 @@ use bevy_ecs_tilemap::{
 
 pub mod geometry;
 
-const CHUNK_WIDTH: u32 = 10;
-const CHUNK_HEIGHT: u32 = 10;
-
-const MAP_WIDTH: u32 = 8;
-const MAP_HEIGHT: u32 = 5;
-
-const TILE_WIDTH: usize = 16;
-const TILE_HEIGHT: usize = 16;
-
-const TEXTURE_WIDTH: usize = TILE_WIDTH * 16;
-const TEXTURE_HEIGHT: usize = TILE_HEIGHT * 16;
-
-pub const WIDTH: usize = MAP_WIDTH as usize * CHUNK_WIDTH as usize;
-pub const HEIGHT: usize = MAP_HEIGHT as usize * CHUNK_HEIGHT as usize;
-
-pub const WINDOW_WIDTH: usize = WIDTH * TILE_WIDTH;
-pub const WINDOW_HEIGHT: usize = HEIGHT * TILE_HEIGHT;
-
 const BACKGROUND_LAYER_ID: u16 = 0;
 const FOREGROUND_LAYER_ID: u16 = 1;
 
 pub struct AsciiTilemapPlugin;
 
 pub struct AsciiTilemapSettings {
-    pub tilemap_asset_path: &'static str,
+    /// The asset path to the tilesheet texture
+    /// default = "tilesheet.png"
+    pub tilesheet_asset_path: &'static str,
+    /// The amount of tiles displayed on the screen horizontally
+    /// default = 80
+    pub width: u32,
+    /// The amount of tiles displayed on the screen horizontally
+    /// default = 50
+    pub height: u32,
+    /// The amount of pixels horizontally for a single tile
+    /// default = 16
+    pub tile_width: u32,
+    /// The amount of pixels vertically for a single tile
+    /// default = 16
+    pub tile_height: u32,
+    /// The amount of tiles horizontally in the spritesheet
+    /// default = 16
+    pub tilesheet_width: u32,
+    /// The amount of tiles vertically in the spritesheet
+    /// default = 16
+    pub tilesheet_height: u32,
+    /// The amount of chunks horizontally
+    /// default = 2
+    pub horizontal_chunks: u32,
+    /// The amount of chunks vertically
+    /// default = 2
+    pub vertical_chunks: u32,
+}
+
+impl Default for AsciiTilemapSettings {
+    fn default() -> Self {
+        Self {
+            tilesheet_asset_path: "tilesheet.png",
+            width: 80,
+            height: 50,
+            tile_width: 16,
+            tile_height: 16,
+            tilesheet_height: 16,
+            tilesheet_width: 16,
+            horizontal_chunks: 2,
+            vertical_chunks: 2,
+        }
+    }
 }
 
 impl Plugin for AsciiTilemapPlugin {
@@ -58,17 +82,23 @@ fn setup(
 ) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
 
-    let texture_handle = asset_server.load(settings.tilemap_asset_path);
+    let texture_handle = asset_server.load(settings.tilesheet_asset_path);
     let material_handle = materials.add(ColorMaterial::texture(texture_handle));
 
     let map_entity = commands.spawn().id();
     let mut map = Map::new(0u16, map_entity);
 
     let layer_settings = LayerSettings::new(
-        UVec2::new(MAP_WIDTH, MAP_HEIGHT),
-        UVec2::new(CHUNK_WIDTH, CHUNK_HEIGHT),
-        Vec2::new(TILE_WIDTH as f32, TILE_HEIGHT as f32),
-        Vec2::new(TEXTURE_WIDTH as f32, TEXTURE_HEIGHT as f32),
+        UVec2::new(settings.horizontal_chunks, settings.vertical_chunks),
+        UVec2::new(
+            settings.width / settings.horizontal_chunks,
+            settings.height / settings.vertical_chunks,
+        ),
+        Vec2::new(settings.tile_width as f32, settings.tile_height as f32),
+        Vec2::new(
+            (settings.tilesheet_width * settings.tile_width) as f32,
+            (settings.tilesheet_height * settings.tile_height) as f32,
+        ),
     );
 
     let mut build_layer = |layer_id| {
@@ -82,12 +112,15 @@ fn setup(
     build_layer(BACKGROUND_LAYER_ID);
     build_layer(FOREGROUND_LAYER_ID);
 
+    let window_width = settings.width * settings.tile_width;
+    let window_height = settings.height * settings.tile_height;
+
     commands
         .entity(map_entity)
         .insert(map)
         .insert(Transform::from_xyz(
-            -((WINDOW_WIDTH / 2) as f32),
-            -((WINDOW_HEIGHT / 2) as f32),
+            -((window_width / 2) as f32),
+            -((window_height / 2) as f32),
             0.0,
         ))
         .insert(GlobalTransform::default());
@@ -97,6 +130,7 @@ fn setup(
 pub struct DrawContext<'a> {
     pub map_query: MapQuery<'a>,
     pub tile_query: Query<'a, &'static mut Tile>,
+    settings: Res<'a, AsciiTilemapSettings>,
 }
 
 impl<'a> DrawContext<'a> {
@@ -123,22 +157,30 @@ impl<'a> DrawContext<'a> {
 
     /// prints a string centered on the x axis
     pub fn print_centered(&mut self, y: usize, text: &str) {
-        self.print((WIDTH / 2) - (text.to_string().len() / 2), y, text);
+        self.print(
+            (self.settings.width as usize / 2) - (text.to_string().len() / 2),
+            y,
+            text,
+        );
     }
 
     /// prints a string centered on the x axis with foreground and background color
     pub fn print_color_centered(&mut self, y: usize, text: &str) {
-        self.print((WIDTH / 2) - (text.to_string().len() / 2), y, text);
+        self.print(
+            (self.settings.width as usize / 2) - (text.to_string().len() / 2),
+            y,
+            text,
+        );
     }
 
     /// sets a tile to a specific character
     pub fn set(&mut self, x: usize, y: usize, background: Color, foreground: Color, char: char) {
-        if x >= WIDTH || y >= HEIGHT {
+        if x >= self.settings.width as usize || y >= self.settings.height as usize {
             return;
         }
 
         // This makes sure the origin is at the top left of the tilemap
-        let position = UVec2::new(x as u32, HEIGHT as u32 - 1 - y as u32);
+        let position = UVec2::new(x as u32, self.settings.height as u32 - 1 - y as u32);
 
         let background_tile_entity = self
             .map_query
