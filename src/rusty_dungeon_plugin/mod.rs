@@ -1,4 +1,7 @@
-use crate::{ascii_tilemap_plugin::DrawContext, HEIGHT, WIDTH};
+use crate::{
+    ascii_tilemap_plugin::{DrawContext, Drawing},
+    HEIGHT, WIDTH,
+};
 use bevy::{
     diagnostic::{Diagnostic, Diagnostics, FrameTimeDiagnosticsPlugin},
     prelude::*,
@@ -10,23 +13,16 @@ mod player;
 use map::{Map, MapBuilder};
 use player::Player;
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
-enum Stage {
-    AfterUpdate,
-}
-
 pub struct RustyDungeonPlugin;
+
+#[derive(Clone, Hash, Debug, PartialEq, Eq, SystemLabel)]
+struct UpdateSystem;
 
 impl Plugin for RustyDungeonPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_startup_system(startup.system())
-            .add_stage_after(
-                CoreStage::Update,
-                Stage::AfterUpdate,
-                SystemStage::parallel(),
-            )
-            .add_system(update.system())
-            .add_system_to_stage(Stage::AfterUpdate, diagnostic.system());
+            .add_system(update.system().label(UpdateSystem).before(Drawing))
+            .add_system(diagnostic.system().after(UpdateSystem).before(Drawing));
     }
 }
 
@@ -63,4 +59,4 @@ fn diagnostic(mut ctx: DrawContext, diagnostics: ResMut<Diagnostics>) {
     if let Some(fps) = fps {
         ctx.print(0, 0, &format!("FPS {:.0}", fps));
     }
-}
+}

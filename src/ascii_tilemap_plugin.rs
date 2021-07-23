@@ -1,8 +1,8 @@
 #![allow(unused)]
 
-use bevy::{asset::AssetPath, ecs::system::SystemParam, prelude::*};
+use bevy::{asset::AssetPath, ecs::system::SystemParam, prelude::*, utils::HashMap};
 use bevy_ecs_tilemap::{
-    Chunk, LayerBuilder, LayerSettings, Map, MapQuery, Tile, TileBundle, TilemapPlugin,
+    Chunk, LayerBuilder, LayerSettings, Map, MapQuery, Tile, TileBundle, TileParent, TilemapPlugin,
 };
 
 pub mod geometry;
@@ -35,10 +35,10 @@ pub struct AsciiTilemapSettings {
     /// default = 16
     pub tilesheet_height: u32,
     /// The amount of chunks horizontally
-    /// default = 2
+    /// default = 1
     pub horizontal_chunks: u32,
     /// The amount of chunks vertically
-    /// default = 2
+    /// default = 1
     pub vertical_chunks: u32,
 }
 
@@ -52,25 +52,75 @@ impl Default for AsciiTilemapSettings {
             tile_height: 16,
             tilesheet_height: 16,
             tilesheet_width: 16,
-            horizontal_chunks: 2,
-            vertical_chunks: 2,
+            horizontal_chunks: 1,
+            vertical_chunks: 1,
         }
     }
 }
 
+#[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
+enum Stage {
+    AfterUpdate,
+}
+
+#[derive(Clone, Hash, Debug, PartialEq, Eq, SystemLabel)]
+pub struct Drawing;
+
 impl Plugin for AsciiTilemapPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_plugin(TilemapPlugin)
+            .add_system(draw.system().label(Drawing))
             .add_startup_system(setup.system())
-            .add_system(update_chunks.system());
+            .insert_resource(TilesToDraw(HashMap::default()));
     }
 }
 
-/// Forces the chunks to rerender on each frame
-fn update_chunks(mut chunk_query: Query<&mut Chunk>) {
-    for mut chunk in chunk_query.iter_mut() {
-        chunk.needs_remesh = true;
+struct TileToDraw {
+    texture_index: char,
+    color: Color,
+}
+
+pub struct TilesToDraw(HashMap<UVec3, TileToDraw>);
+
+fn draw(
+    mut chunk_query: Query<&mut Chunk>,
+    mut tiles_to_draw: ResMut<TilesToDraw>,
+    mut tile_query: Query<(&mut Tile, &TileParent, &UVec2)>,
+) {
+    if tiles_to_draw.0.is_empty() {
+        return;
     }
+
+    tile_query.for_each_mut(|(mut tile, tile_parent, tile_pos)| {
+        let tile_to_draw = &tiles_to_draw.0[&tile_pos.extend(tile_parent.layer_id as u32)];
+        tile.texture_index = tile_to_draw.texture_index as u16;
+        tile.color = tile_to_draw.color;
+    });
+    tiles_to_draw.0.clear();
+
+    // always update all the chunks because we always clear the screen
+    chunk_query.for_each_mut(|mut chunk| {
+        chunk.needs_remesh = true;
+    })
+}
+
+fn update_chunks(mut chunk_query: Query<&mut Chunk>) {
+    // always update all the chunks because we always clear the screen
+    chunk_query.for_each_mut(|mut chunk| {
+        chunk.needs_remesh = true;
+    })
+}
+
+fn update_tiles(
+    mut tiles_to_draw: ResMut<TilesToDraw>,
+    mut tile_query: Query<(&mut Tile, &TileParent, &UVec2)>,
+) {
+    tile_query.for_each_mut(|(mut tile, tile_parent, tile_pos)| {
+        let tile_to_draw = &tiles_to_draw.0[&tile_pos.extend(tile_parent.layer_id as u32)];
+        tile.texture_index = tile_to_draw.texture_index as u16;
+        tile.color = tile_to_draw.color;
+    });
+    tiles_to_draw.0.clear();
 }
 
 fn setup(
@@ -131,13 +181,32 @@ pub struct DrawContext<'a> {
     pub map_query: MapQuery<'a>,
     pub tile_query: Query<'a, &'static mut Tile>,
     settings: Res<'a, AsciiTilemapSettings>,
+    tiles_to_draw: ResMut<'a, TilesToDraw>,
 }
 
 impl<'a> DrawContext<'a> {
-    /// Prints a string at the given position
-    /// if the string is longer than the viewport it will get truncated, wrapping is not handled
-    pub fn print(&mut self, x: usize, y: usize, text: &str) {
-        self.print_color(x, y, Color::BLACK, Color::WHITE, text);
+    /// sets a tile to a specific character
+    pub fn set(&mut self, x: usize, y: usize, background: Color, foreground: Color, char: char) {
+        if x >= self.settings.width as usize || y >= self.settings.height as usize {
+            return;
+        }
+
+        // This makes sure the origin is at the top left of the tilemap
+        let position = UVec2::new(x as u32, self.settings.height as u32 - 1 - y as u32);
+        self.tiles_to_draw.0.insert(
+            position.extend(BACKGROUND_LAYER_ID as u32),
+            TileToDraw {
+                color: background,
+                texture_index: 219 as char, // ASCII code 219 = █ ( Block, graphic character )
+            },
+        );
+        self.tiles_to_draw.0.insert(
+            position.extend(FOREGROUND_LAYER_ID as u32),
+            TileToDraw {
+                color: foreground,
+                texture_index: char,
+            },
+        );
     }
 
     /// Prints a string at the given position with foreground and background color
@@ -155,49 +224,32 @@ impl<'a> DrawContext<'a> {
         }
     }
 
+    /// prints a string centered on the x axis with foreground and background color
+    pub fn print_color_centered(
+        &mut self,
+        y: usize,
+        background: Color,
+        foreground: Color,
+        text: &str,
+    ) {
+        self.print_color(
+            (self.settings.width as usize / 2) - (text.to_string().len() / 2),
+            y,
+            background,
+            foreground,
+            text,
+        );
+    }
+
+    /// Prints a string at the given position
+    /// if the string is longer than the viewport it will get truncated, wrapping is not handled
+    pub fn print(&mut self, x: usize, y: usize, text: &str) {
+        self.print_color(x, y, Color::BLACK, Color::WHITE, text);
+    }
+
     /// prints a string centered on the x axis
     pub fn print_centered(&mut self, y: usize, text: &str) {
-        self.print(
-            (self.settings.width as usize / 2) - (text.to_string().len() / 2),
-            y,
-            text,
-        );
-    }
-
-    /// prints a string centered on the x axis with foreground and background color
-    pub fn print_color_centered(&mut self, y: usize, text: &str) {
-        self.print(
-            (self.settings.width as usize / 2) - (text.to_string().len() / 2),
-            y,
-            text,
-        );
-    }
-
-    /// sets a tile to a specific character
-    pub fn set(&mut self, x: usize, y: usize, background: Color, foreground: Color, char: char) {
-        if x >= self.settings.width as usize || y >= self.settings.height as usize {
-            return;
-        }
-
-        // This makes sure the origin is at the top left of the tilemap
-        let position = UVec2::new(x as u32, self.settings.height as u32 - 1 - y as u32);
-
-        let background_tile_entity = self
-            .map_query
-            .get_tile_entity(position, 0u16, BACKGROUND_LAYER_ID)
-            .unwrap_or_else(|_| panic!("tile not found at {} ", position));
-        if let Ok(mut tile) = self.tile_query.get_mut(background_tile_entity) {
-            tile.color = background;
-        }
-
-        let foreground_tile_entity = self
-            .map_query
-            .get_tile_entity(position, 0u16, FOREGROUND_LAYER_ID)
-            .unwrap_or_else(|_| panic!("tile not found at {} ", position));
-        if let Ok(mut tile) = self.tile_query.get_mut(foreground_tile_entity) {
-            tile.texture_index = char as u16;
-            tile.color = foreground;
-        }
+        self.print_color_centered(y, Color::BLACK, Color::WHITE, text)
     }
 
     /// Clears the screen
@@ -207,9 +259,9 @@ impl<'a> DrawContext<'a> {
 
     /// Clears the screen with a specific color
     pub fn cls_color(&mut self, color: Color) {
-        for mut tile in self.tile_query.iter_mut() {
+        self.tile_query.for_each_mut(|mut tile| {
             tile.texture_index = 219; // ASCII code 219 = █ ( Block, graphic character )
             tile.color = color;
-        }
+        })
     }
 }
