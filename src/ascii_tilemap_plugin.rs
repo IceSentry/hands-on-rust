@@ -92,35 +92,20 @@ fn draw(
     }
 
     tile_query.for_each_mut(|(mut tile, tile_parent, tile_pos)| {
-        let tile_to_draw = &tiles_to_draw.0[&tile_pos.extend(tile_parent.layer_id as u32)];
-        tile.texture_index = tile_to_draw.texture_index as u16;
-        tile.color = tile_to_draw.color;
+        if let Some(tile_to_draw) = tiles_to_draw
+            .0
+            .get(&tile_pos.extend(tile_parent.layer_id.into()))
+        {
+            tile.texture_index = tile_to_draw.texture_index as u16;
+            tile.color = tile_to_draw.color;
+        }
     });
     tiles_to_draw.0.clear();
 
     // always update all the chunks because we always clear the screen
     chunk_query.for_each_mut(|mut chunk| {
         chunk.needs_remesh = true;
-    })
-}
-
-fn update_chunks(mut chunk_query: Query<&mut Chunk>) {
-    // always update all the chunks because we always clear the screen
-    chunk_query.for_each_mut(|mut chunk| {
-        chunk.needs_remesh = true;
-    })
-}
-
-fn update_tiles(
-    mut tiles_to_draw: ResMut<TilesToDraw>,
-    mut tile_query: Query<(&mut Tile, &TileParent, &UVec2)>,
-) {
-    tile_query.for_each_mut(|(mut tile, tile_parent, tile_pos)| {
-        let tile_to_draw = &tiles_to_draw.0[&tile_pos.extend(tile_parent.layer_id as u32)];
-        tile.texture_index = tile_to_draw.texture_index as u16;
-        tile.color = tile_to_draw.color;
     });
-    tiles_to_draw.0.clear();
 }
 
 fn setup(
@@ -136,7 +121,7 @@ fn setup(
     let material_handle = materials.add(ColorMaterial::texture(texture_handle));
 
     let map_entity = commands.spawn().id();
-    let mut map = Map::new(0u16, map_entity);
+    let mut map = Map::new(0_u16, map_entity);
 
     let layer_settings = LayerSettings::new(
         UVec2::new(settings.horizontal_chunks, settings.vertical_chunks),
@@ -153,7 +138,7 @@ fn setup(
 
     let mut build_layer = |layer_id| {
         let (mut layer_builder, layer_entity) =
-            LayerBuilder::new(&mut commands, layer_settings, 0u16, layer_id, None);
+            LayerBuilder::new(&mut commands, layer_settings, 0_u16, layer_id, None);
         layer_builder.set_all(TileBundle::default());
         map_query.build_layer(&mut commands, layer_builder, material_handle.clone());
         map.add_layer(&mut commands, layer_id, layer_entity);
@@ -186,22 +171,22 @@ pub struct DrawContext<'a> {
 
 impl<'a> DrawContext<'a> {
     /// sets a tile to a specific character
-    pub fn set(&mut self, x: usize, y: usize, background: Color, foreground: Color, char: char) {
-        if x >= self.settings.width as usize || y >= self.settings.height as usize {
+    pub fn set(&mut self, x: u32, y: u32, background: Color, foreground: Color, char: char) {
+        if x >= self.settings.width || y >= self.settings.height {
             return;
         }
 
         // This makes sure the origin is at the top left of the tilemap
-        let position = UVec2::new(x as u32, self.settings.height as u32 - 1 - y as u32);
+        let position = UVec2::new(x, self.settings.height as u32 - 1 - y);
         self.tiles_to_draw.0.insert(
-            position.extend(BACKGROUND_LAYER_ID as u32),
+            position.extend(BACKGROUND_LAYER_ID.into()),
             TileToDraw {
                 color: background,
                 texture_index: 219 as char, // ASCII code 219 = █ ( Block, graphic character )
             },
         );
         self.tiles_to_draw.0.insert(
-            position.extend(FOREGROUND_LAYER_ID as u32),
+            position.extend(FOREGROUND_LAYER_ID.into()),
             TileToDraw {
                 color: foreground,
                 texture_index: char,
@@ -213,27 +198,27 @@ impl<'a> DrawContext<'a> {
     /// if the string is longer than the viewport it will get truncated, wrapping is not handled
     pub fn print_color(
         &mut self,
-        x: usize,
-        y: usize,
+        x: u32,
+        y: u32,
         background: Color,
         foreground: Color,
         text: &str,
     ) {
         for (i, char) in text.chars().enumerate() {
-            self.set(x + i, y, background, foreground, char);
+            self.set(x + i as u32, y, background, foreground, char);
         }
     }
 
     /// prints a string centered on the x axis with foreground and background color
     pub fn print_color_centered(
         &mut self,
-        y: usize,
+        y: u32,
         background: Color,
         foreground: Color,
         text: &str,
     ) {
         self.print_color(
-            (self.settings.width as usize / 2) - (text.to_string().len() / 2),
+            (self.settings.width / 2) - (text.to_string().len() as u32 / 2),
             y,
             background,
             foreground,
@@ -243,13 +228,13 @@ impl<'a> DrawContext<'a> {
 
     /// Prints a string at the given position
     /// if the string is longer than the viewport it will get truncated, wrapping is not handled
-    pub fn print(&mut self, x: usize, y: usize, text: &str) {
+    pub fn print(&mut self, x: u32, y: u32, text: &str) {
         self.print_color(x, y, Color::BLACK, Color::WHITE, text);
     }
 
     /// prints a string centered on the x axis
-    pub fn print_centered(&mut self, y: usize, text: &str) {
-        self.print_color_centered(y, Color::BLACK, Color::WHITE, text)
+    pub fn print_centered(&mut self, y: u32, text: &str) {
+        self.print_color_centered(y, Color::BLACK, Color::WHITE, text);
     }
 
     /// Clears the screen
@@ -262,6 +247,6 @@ impl<'a> DrawContext<'a> {
         self.tile_query.for_each_mut(|mut tile| {
             tile.texture_index = 219; // ASCII code 219 = █ ( Block, graphic character )
             tile.color = color;
-        })
+        });
     }
 }

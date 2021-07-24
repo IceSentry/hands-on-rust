@@ -9,16 +9,16 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(x: usize, y: usize) -> Self {
+    pub fn new(x: u32, y: u32) -> Self {
         Self {
-            position: UVec2::new(x as u32, y as u32),
+            position: UVec2::new(x, y),
         }
     }
 
     pub fn render(&self, ctx: &mut DrawContext) {
         ctx.set(
-            self.position.x as usize,
-            self.position.y as usize,
+            self.position.x,
+            self.position.y,
             Color::BLACK,
             Color::WHITE,
             '@',

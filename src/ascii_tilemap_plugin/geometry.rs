@@ -2,15 +2,15 @@ use bevy::prelude::*;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Rect {
-    x_left: usize,
-    y_bottom: usize,
-    x_right: usize,
-    y_top: usize,
+    x_left: u32,
+    y_bottom: u32,
+    x_right: u32,
+    y_top: u32,
 }
 
 impl Rect {
     /// Creates a Rect with the x,y at the bottom left and the given dimensions
-    pub fn with_dimension(x: usize, y: usize, width: usize, height: usize) -> Self {
+    pub fn with_dimension(x: u32, y: u32, width: u32, height: u32) -> Self {
         Self {
             x_left: x,
             y_bottom: y,
@@ -30,17 +30,17 @@ impl Rect {
     /// Returns the center of the Rect
     pub fn center(&self) -> UVec2 {
         UVec2::new(
-            ((self.x_left + self.x_right) / 2) as u32,
-            ((self.y_bottom + self.y_top) / 2) as u32,
+            (self.x_left + self.x_right) / 2,
+            (self.y_bottom + self.y_top) / 2,
         )
     }
 
     /// Returns true if a point is inside the Rect
     pub fn point_in_rect(&self, point: UVec2) -> bool {
-        point.x >= self.x_left as u32
-            && point.x < self.x_right as u32
-            && point.y >= self.y_bottom as u32
-            && point.y < self.y_top as u32
+        point.x >= self.x_left
+            && point.x < self.x_right
+            && point.y >= self.y_bottom
+            && point.y < self.y_top
     }
 
     /// Returns an iterator that iterates over each points inside the Rect
@@ -55,22 +55,22 @@ impl Rect {
     }
 
     /// Returns the Rect width
-    pub fn width(&self) -> usize {
-        i32::abs(self.x_right as i32 - self.x_left as i32) as usize
+    pub fn width(&self) -> u32 {
+        i64::abs(i64::from(self.x_right) - i64::from(self.x_left)) as u32
     }
 
     /// Returns the Rect height
-    pub fn height(&self) -> usize {
-        i32::abs(self.y_top as i32 - self.y_bottom as i32) as usize
+    pub fn height(&self) -> u32 {
+        i64::abs(i64::from(self.y_top) - i64::from(self.y_bottom)) as u32
     }
 }
 
 pub struct Points {
-    curr_index: usize,
-    width: usize,
-    len: usize,
-    x: usize,
-    y: usize,
+    curr_index: u32,
+    width: u32,
+    len: u32,
+    x: u32,
+    y: u32,
 }
 
 impl Iterator for Points {

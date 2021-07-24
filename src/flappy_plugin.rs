@@ -1,6 +1,9 @@
 use bevy::{app::AppExit, prelude::*};
 
-use crate::{ascii_tilemap_plugin::DrawContext, HEIGHT, WIDTH};
+use crate::{
+    ascii_tilemap_plugin::{DrawContext, Drawing},
+    HEIGHT, WIDTH,
+};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 enum GameState {
@@ -14,20 +17,26 @@ pub struct FlappyPlugin;
 impl Plugin for FlappyPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_state(GameState::Menu)
-            .add_system_set(SystemSet::on_update(GameState::Menu).with_system(menu.system()))
+            .add_system_set(
+                SystemSet::on_update(GameState::Menu).with_system(menu.system().before(Drawing)),
+            )
             .add_system_set(SystemSet::on_exit(GameState::Menu).with_system(clear_input.system()))
-            .add_system_set(SystemSet::on_update(GameState::Playing).with_system(play.system()))
+            .add_system_set(
+                SystemSet::on_update(GameState::Playing).with_system(play.system().before(Drawing)),
+            )
             .add_system_set(
                 SystemSet::on_exit(GameState::Playing).with_system(clear_input.system()),
             )
-            .add_system_set(SystemSet::on_update(GameState::End).with_system(end.system()))
+            .add_system_set(
+                SystemSet::on_update(GameState::End).with_system(end.system().before(Drawing)),
+            )
             .add_system_set(SystemSet::on_exit(GameState::End).with_system(clear_input.system()))
             .add_event::<RestartEvent>()
             .add_system(restart.system())
             .insert_resource(Player::new(5, 25))
             .insert_resource(FrameTime(0.0))
             .insert_resource(Score(0))
-            .insert_resource(Obstacle::new(WIDTH as usize, 0));
+            .insert_resource(Obstacle::new(WIDTH, 0));
     }
 }
 
@@ -36,17 +45,17 @@ struct RestartEvent;
 const FRAME_DURATION: f32 = 0.075;
 
 struct FrameTime(f32);
-struct Score(usize);
+struct Score(u32);
 
 #[derive(Debug)]
 struct Player {
-    x: usize,
-    y: usize,
+    x: u32,
+    y: u32,
     velocity: f32,
 }
 
 impl Player {
-    fn new(x: usize, y: usize) -> Self {
+    fn new(x: u32, y: u32) -> Self {
         Self {
             x,
             y,
@@ -58,12 +67,13 @@ impl Player {
         ctx.set(0, self.y, Color::RED, Color::YELLOW, 1 as char);
     }
 
+    #[allow(clippy::cast_sign_loss)]
     fn gravity_and_move(&mut self) {
         if self.velocity < 2. {
             self.velocity += 0.3;
         }
         // since usize doesn't have negative numbers casting the velocity didn't work
-        self.y = (self.y as f32 + self.velocity) as usize;
+        self.y = (self.y as f32 + self.velocity) as u32;
         self.x += 1;
     }
 
@@ -73,21 +83,21 @@ impl Player {
 }
 
 struct Obstacle {
-    x: usize,
-    gap_y: usize,
-    size: usize,
+    x: u32,
+    gap_y: u32,
+    size: u32,
 }
 
 impl Obstacle {
-    fn new(x: usize, score: usize) -> Self {
+    fn new(x: u32, score: u32) -> Self {
         Self {
             x,
-            gap_y: fastrand::usize(10..40),
-            size: usize::max(2, 20 - score),
+            gap_y: fastrand::u32(10..40),
+            size: u32::max(2, 20 - score),
         }
     }
 
-    fn render(&mut self, ctx: &mut DrawContext, player_x: usize) {
+    fn render(&mut self, ctx: &mut DrawContext, player_x: u32) {
         let screen_x = self.x - player_x;
         let half_size = self.size / 2;
 
@@ -97,7 +107,7 @@ impl Obstacle {
             ctx.set(screen_x, y, Color::BLACK, Color::GREEN, char);
         }
 
-        for y in self.gap_y + half_size..HEIGHT as usize {
+        for y in self.gap_y + half_size..HEIGHT {
             ctx.set(screen_x, y, Color::BLACK, Color::GREEN, char);
         }
     }
@@ -128,7 +138,7 @@ fn restart(
     info!("Restarting...");
     state.set(GameState::Playing).expect("failed to set state");
     *player = Player::new(5, 25);
-    *obstacle = Obstacle::new(WIDTH as usize, 0);
+    *obstacle = Obstacle::new(WIDTH, 0);
     score.0 = 0;
 }
 
@@ -178,10 +188,10 @@ fn play(
     obstacle.render(&mut ctx, player.x);
     if player.x > obstacle.x {
         score.0 += 1;
-        *obstacle = Obstacle::new(player.x + WIDTH as usize, score.0);
+        *obstacle = Obstacle::new(player.x + WIDTH, score.0);
     }
 
-    if player.y > HEIGHT as usize || obstacle.hit(&player) {
+    if player.y > HEIGHT || obstacle.hit(&player) {
         state.set(GameState::End).expect("failed to set state");
     }
 }
