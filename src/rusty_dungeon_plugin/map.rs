@@ -38,7 +38,7 @@ impl Map {
 
     pub fn render(&self, ctx: &mut DrawContext, camera: &Camera) {
         ctx.set_active_layer(0);
-        for y in camera.top_y..camera.bottom_y {
+        for y in camera.top_y..=camera.bottom_y {
             for x in camera.left_x..camera.right_x {
                 match self.get_tile(UVec2::new(x, y)) {
                     Some(TileType::Floor) => ctx.set(

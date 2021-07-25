@@ -58,6 +58,14 @@ impl AsciiTilemapSettings {
     pub fn builder() -> AsciiTilemapSettingsBuilder {
         AsciiTilemapSettingsBuilder::default()
     }
+
+    pub fn window_width(&self) -> f32 {
+        (self.width * self.tile_width) as f32
+    }
+
+    pub fn window_height(&self) -> f32 {
+        (self.height * self.tile_height) as f32
+    }
 }
 
 pub struct AsciiTilemapSettingsBuilder {
@@ -127,7 +135,7 @@ pub struct TilesToDraw(HashMap<UVec3, TileToDraw>);
 pub struct ActiveLayer(u32);
 
 // TODO support per layer tilesheet
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 struct Layer {
     background_id: u16,
     foreground_id: u16,
@@ -144,8 +152,6 @@ impl Layer {
         }
     }
 }
-
-struct Layers(Vec<Layer>);
 
 pub struct AsciiTilemapPlugin;
 
@@ -199,19 +205,16 @@ fn setup(
     };
 
     for layer in &settings.layers {
-        build_layer(layer.background_id); // background
-        build_layer(layer.foreground_id); // foreground
+        build_layer(layer.background_id);
+        build_layer(layer.foreground_id);
     }
-
-    let window_width = settings.width * settings.tile_width;
-    let window_height = settings.height * settings.tile_height;
 
     commands
         .entity(map_entity)
         .insert(map)
         .insert(Transform::from_xyz(
-            -((window_width / 2) as f32),
-            -((window_height / 2) as f32),
+            -(settings.window_width() / 2.),
+            -(settings.window_height() / 2.),
             0.0,
         ))
         .insert(GlobalTransform::default());
@@ -266,18 +269,18 @@ impl<'a> DrawContext<'a> {
 
         // This makes sure the origin is at the top left of the tilemap
         let position = UVec2::new(x, self.settings.height as u32 - 1 - y);
-        if self.active_layer.0 == BACKGROUND_LAYER_ID {
-            // transparent background for every layer
-            self.tiles_to_draw.0.insert(
-                position.extend(self.active_layer.0 * 2), // background
-                TileToDraw {
-                    color: background,
-                    texture_index: 219 as char, // ASCII code 219 = █ ( Block, graphic character )
-                },
-            );
-        }
+        let active_layer = self.get_active_layer();
+        // if !active_layer.is_background_transparent {
         self.tiles_to_draw.0.insert(
-            position.extend(self.active_layer.0 * 2 + 1), // foreground
+            position.extend(u32::from(active_layer.background_id)),
+            TileToDraw {
+                color: background,
+                texture_index: 219 as char, // ASCII code 219 = █ ( Block, graphic character )
+            },
+        );
+        // }
+        self.tiles_to_draw.0.insert(
+            position.extend(u32::from(active_layer.foreground_id)),
             TileToDraw {
                 color: foreground,
                 texture_index: char,
@@ -328,7 +331,7 @@ impl<'a> DrawContext<'a> {
         self.print_color_centered(y, Color::BLACK, Color::WHITE, text);
     }
 
-    /// Clears the screen
+    /// Clears the `active_layer`
     pub fn cls(&mut self) {
         self.cls_color(Color::BLACK);
     }
@@ -336,11 +339,11 @@ impl<'a> DrawContext<'a> {
     /// Clears the `active_layer` with a specific color
     pub fn cls_color(&mut self, color: Color) {
         self.tile_query.for_each_mut(|(mut tile, tile_parent)| {
-            let active_layer = &self.settings.layers[self.active_layer.0 as usize];
+            let active_layer = self.get_active_layer();
             if active_layer.background_id == tile_parent.layer_id
                 || active_layer.foreground_id == tile_parent.layer_id
             {
-                tile.texture_index = if active_layer.background_id == tile_parent.layer_id
+                tile.texture_index = if tile_parent.layer_id == active_layer.background_id
                     && !active_layer.is_background_transparent
                 {
                     219 // ASCII code 219 = █ ( Block, graphic character )
@@ -352,8 +355,36 @@ impl<'a> DrawContext<'a> {
         });
     }
 
+    pub fn cls_all_layers(&mut self) {
+        self.cls_color_all_layers(Color::BLACK);
+    }
+
+    pub fn cls_color_all_layers(&mut self, color: Color) {
+        self.tile_query.for_each_mut(|(mut tile, tile_parent)| {
+            let layer_index = if tile_parent.layer_id % 2 == 0 {
+                tile_parent.layer_id / 2
+            } else {
+                (tile_parent.layer_id - 1) / 2
+            };
+            let layer = &self.settings.layers[layer_index as usize];
+
+            tile.texture_index = if tile_parent.layer_id == layer.background_id
+                && !layer.is_background_transparent
+            {
+                219 // ASCII code 219 = █ ( Block, graphic character )
+            } else {
+                0 // foreground and transparent backgrounds should be invisible after clear
+            };
+            tile.color = color;
+        });
+    }
+
     /// sets the active layer used by the `DrawContext`
     pub fn set_active_layer(&mut self, layer: u8) {
         self.active_layer.0 = u32::from(layer);
+    }
+
+    fn get_active_layer(&self) -> Layer {
+        self.settings.layers[self.active_layer.0 as usize]
     }
 }

@@ -30,28 +30,30 @@ pub const TILE_WIDTH: u32 = 16;
 pub const TILE_HEIGHT: u32 = 16;
 
 fn main() {
+    let settings = AsciiTilemapSettings::builder()
+        .with_tilesheet_path("16x16-sb-ascii.png")
+        .with_dimensions(DISPLAY_WIDTH, DISPLAY_HEIGHT)
+        .with_tile_dimensions(TILE_WIDTH, TILE_HEIGHT)
+        .with_layer(0, false)
+        .with_layer(1, true)
+        .with_layer(2, true)
+        .build();
+
     App::build()
         .insert_resource(WindowDescriptor {
             // TODO find a way to control this by the plugin
-            width: (DISPLAY_WIDTH * TILE_WIDTH) as f32,
-            height: (DISPLAY_HEIGHT * TILE_HEIGHT) as f32,
+            // if they don't match the map will not be aligned properly
+            width: settings.window_width(),
+            height: settings.window_height(),
             title: String::from("hands on dungeon crawler"),
-            vsync: false,
+            // vsync: false,
             resizable: false,
             ..Default::default()
         })
         .add_plugins(DefaultPlugins)
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_plugin(AsciiTilemapPlugin)
-        .insert_resource(
-            AsciiTilemapSettings::builder()
-                .with_tilesheet_path("16x16-sb-ascii.png")
-                .with_dimensions(DISPLAY_WIDTH, DISPLAY_HEIGHT)
-                .with_tile_dimensions(TILE_WIDTH, TILE_HEIGHT)
-                .with_layer(0, false)
-                .with_layer(1, true)
-                .build(),
-        )
+        .insert_resource(settings)
         // .add_plugin(flappy_plugin::FlappyPlugin)
         .add_plugin(rusty_dungeon_plugin::RustyDungeonPlugin)
         .run();

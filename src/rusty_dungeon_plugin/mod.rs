@@ -73,10 +73,7 @@ fn update(
     mut player: ResMut<Player>,
     mut camera: ResMut<Camera>,
 ) {
-    ctx.set_active_layer(0);
-    ctx.cls();
-    ctx.set_active_layer(1);
-    ctx.cls();
+    ctx.cls_all_layers();
     player.update(&map, &keyboard_input, &mut camera);
     map.render(&mut ctx, &camera);
     player.render(&mut ctx, &camera);
@@ -87,7 +84,7 @@ fn diagnostic(mut ctx: DrawContext, diagnostics: ResMut<Diagnostics>) {
         .get(FrameTimeDiagnosticsPlugin::FPS)
         .and_then(Diagnostic::average);
     if let Some(fps) = fps {
-        ctx.set_active_layer(0);
+        ctx.set_active_layer(2);
         ctx.print(0, 0, &format!("FPS {:.0}", fps));
     }
 }
