@@ -87,6 +87,7 @@ fn diagnostic(mut ctx: DrawContext, diagnostics: ResMut<Diagnostics>) {
         .get(FrameTimeDiagnosticsPlugin::FPS)
         .and_then(Diagnostic::average);
     if let Some(fps) = fps {
+        ctx.set_active_layer(0);
         ctx.print(0, 0, &format!("FPS {:.0}", fps));
     }
 }
