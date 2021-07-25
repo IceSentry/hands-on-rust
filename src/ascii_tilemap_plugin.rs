@@ -1,14 +1,18 @@
 #![allow(unused)]
 
-use bevy::{asset::AssetPath, ecs::system::SystemParam, prelude::*, utils::HashMap};
+use bevy::{
+    asset::AssetPath,
+    ecs::system::SystemParam,
+    prelude::*,
+    utils::{HashMap, Instant},
+};
 use bevy_ecs_tilemap::{
     Chunk, LayerBuilder, LayerSettings, Map, MapQuery, Tile, TileBundle, TileParent, TilemapPlugin,
 };
 
 pub mod geometry;
 
-const BACKGROUND_LAYER_ID: u16 = 0;
-const FOREGROUND_LAYER_ID: u16 = 1;
+const BACKGROUND_LAYER_ID: u32 = 0;
 
 pub struct AsciiTilemapPlugin;
 
@@ -40,6 +44,9 @@ pub struct AsciiTilemapSettings {
     /// The amount of chunks vertically
     /// default = 1
     pub vertical_chunks: u32,
+    /// The amount of layers
+    /// default = 1
+    pub layers: u8,
 }
 
 impl Default for AsciiTilemapSettings {
@@ -54,6 +61,7 @@ impl Default for AsciiTilemapSettings {
             tilesheet_width: 16,
             horizontal_chunks: 1,
             vertical_chunks: 1,
+            layers: 1,
         }
     }
 }
@@ -71,7 +79,8 @@ impl Plugin for AsciiTilemapPlugin {
         app.add_plugin(TilemapPlugin)
             .add_system(draw.system().label(Drawing))
             .add_startup_system(setup.system())
-            .insert_resource(TilesToDraw(HashMap::default()));
+            .insert_resource(TilesToDraw(HashMap::default()))
+            .insert_resource(ActiveLayer(0));
     }
 }
 
@@ -81,6 +90,8 @@ struct TileToDraw {
 }
 
 pub struct TilesToDraw(HashMap<UVec3, TileToDraw>);
+
+pub struct ActiveLayer(u32);
 
 fn draw(
     mut chunk_query: Query<&mut Chunk>,
@@ -115,6 +126,9 @@ fn setup(
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut map_query: MapQuery,
 ) {
+    info!("initializing ascii_tilemap_plugin...");
+    let start = Instant::now();
+
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
 
     let texture_handle = asset_server.load(settings.tilesheet_asset_path);
@@ -144,8 +158,11 @@ fn setup(
         map.add_layer(&mut commands, layer_id, layer_entity);
     };
 
-    build_layer(BACKGROUND_LAYER_ID);
-    build_layer(FOREGROUND_LAYER_ID);
+    for layer_id in 0..settings.layers {
+        let real_id = u16::from(layer_id * 2);
+        build_layer(real_id); // background
+        build_layer(real_id + 1); // foreground
+    }
 
     let window_width = settings.width * settings.tile_width;
     let window_height = settings.height * settings.tile_height;
@@ -159,14 +176,20 @@ fn setup(
             0.0,
         ))
         .insert(GlobalTransform::default());
+
+    info!(
+        "initializing ascii_tilemap_plugin...done {:?}",
+        start.elapsed()
+    );
 }
 
 #[derive(SystemParam)]
 pub struct DrawContext<'a> {
     pub map_query: MapQuery<'a>,
-    pub tile_query: Query<'a, &'static mut Tile>,
+    pub tile_query: Query<'a, (&'static mut Tile, &'static TileParent)>,
     settings: Res<'a, AsciiTilemapSettings>,
     tiles_to_draw: ResMut<'a, TilesToDraw>,
+    active_layer: ResMut<'a, ActiveLayer>,
 }
 
 impl<'a> DrawContext<'a> {
@@ -178,15 +201,18 @@ impl<'a> DrawContext<'a> {
 
         // This makes sure the origin is at the top left of the tilemap
         let position = UVec2::new(x, self.settings.height as u32 - 1 - y);
+        if self.active_layer.0 == BACKGROUND_LAYER_ID {
+            // transparent background for every layer
+            self.tiles_to_draw.0.insert(
+                position.extend(self.active_layer.0 * 2), // background
+                TileToDraw {
+                    color: background,
+                    texture_index: 219 as char, // ASCII code 219 = █ ( Block, graphic character )
+                },
+            );
+        }
         self.tiles_to_draw.0.insert(
-            position.extend(BACKGROUND_LAYER_ID.into()),
-            TileToDraw {
-                color: background,
-                texture_index: 219 as char, // ASCII code 219 = █ ( Block, graphic character )
-            },
-        );
-        self.tiles_to_draw.0.insert(
-            position.extend(FOREGROUND_LAYER_ID.into()),
+            position.extend(self.active_layer.0 * 2 + 1), // foreground
             TileToDraw {
                 color: foreground,
                 texture_index: char,
@@ -242,11 +268,25 @@ impl<'a> DrawContext<'a> {
         self.cls_color(Color::BLACK);
     }
 
-    /// Clears the screen with a specific color
+    /// Clears the `active_layer` with a specific color
     pub fn cls_color(&mut self, color: Color) {
-        self.tile_query.for_each_mut(|mut tile| {
-            tile.texture_index = 219; // ASCII code 219 = █ ( Block, graphic character )
-            tile.color = color;
+        self.tile_query.for_each_mut(|(mut tile, tile_parent)| {
+            let real_layer = self.active_layer.0 * 2;
+            if real_layer == u32::from(tile_parent.layer_id)
+                || real_layer + 1 == u32::from(tile_parent.layer_id)
+            {
+                tile.texture_index = if real_layer == BACKGROUND_LAYER_ID {
+                    219 // ASCII code 219 = █ ( Block, graphic character )
+                } else {
+                    0
+                };
+                tile.color = color;
+            }
         });
+    }
+
+    /// sets the active layer used by the `DrawContext`
+    pub fn set_active_layer(&mut self, layer: u8) {
+        self.active_layer.0 = u32::from(layer);
     }
 }

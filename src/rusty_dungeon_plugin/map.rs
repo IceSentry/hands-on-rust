@@ -1,9 +1,12 @@
+use super::camera::Camera;
 use crate::{
     ascii_tilemap_plugin::{self, DrawContext},
     HEIGHT, WIDTH,
 };
+use anyhow::{bail, Result};
 use bevy::prelude::*;
 use fastrand::Rng;
+use std::ops::Range;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum TileType {
@@ -13,7 +16,7 @@ pub enum TileType {
 
 #[derive(Clone)]
 pub struct Map {
-    pub tiles: Vec<TileType>,
+    tiles: Vec<TileType>,
     width: u32,
     height: u32,
 }
@@ -33,38 +36,55 @@ impl Map {
         }
     }
 
-    pub fn render(&self, ctx: &mut DrawContext) {
-        for y in 0..HEIGHT as usize {
-            for x in 0..WIDTH as usize {
-        for y in 0..HEIGHT {
-            for x in 0..WIDTH {
-                let index = Map::index(x, y);
-                match self.tiles[index] {
-                    TileType::Floor => ctx.set(x, y, Color::BLACK, Color::YELLOW, '.'),
-                    TileType::Wall => ctx.set(x, y, Color::BLACK, Color::GREEN, '#'),
+    pub fn render(&self, ctx: &mut DrawContext, camera: &Camera) {
+        ctx.set_active_layer(0);
+        for y in camera.top_y..camera.bottom_y {
+            for x in camera.left_x..camera.right_x {
+                match self.get_tile(UVec2::new(x, y)) {
+                    Some(TileType::Floor) => ctx.set(
+                        x - camera.left_x,
+                        y - camera.top_y,
+                        Color::BLACK,
+                        Color::WHITE,
+                        '.',
+                    ),
+                    Some(TileType::Wall) => ctx.set(
+                        x - camera.left_x,
+                        y - camera.top_y,
+                        Color::BLACK,
+                        Color::WHITE,
+                        '#',
+                    ),
+                    None => (),
                 }
             }
         }
     }
 
+    pub fn set_tile(&mut self, position: UVec2, tile: TileType) {
+        if let Some(index) = self.try_index(position) {
+            self.tiles[index] = tile;
+        }
+    }
+
+    pub fn get_tile(&self, position: UVec2) -> Option<TileType> {
+        self.try_index(position).map(|index| self.tiles[index])
+    }
+
     pub fn in_bounds(&self, point: UVec2) -> bool {
-        (point.x) < WIDTH && (point.y) < HEIGHT
+        point.x < self.width && point.y < self.height
     }
 
     pub fn can_enter_tile(&self, point: UVec2) -> bool {
-        self.in_bounds(point) && self.tiles[Map::index(point.x, point.y)] == TileType::Floor
+        self.in_bounds(point) && self.get_tile(point) == Some(TileType::Floor)
     }
 
     pub fn try_index(&self, point: UVec2) -> Option<usize> {
         if self.in_bounds(point) {
-            Some(Map::index(point.x, point.y))
+            Some(((point.y * self.width) + point.x) as usize)
         } else {
             None
         }
-    }
-
-    fn index(x: u32, y: u32) -> usize {
-        ((y * WIDTH) + x) as usize
     }
 }
 
@@ -73,56 +93,59 @@ pub struct MapBuilder<'a> {
     rooms: Vec<ascii_tilemap_plugin::geometry::Rect>,
     width: u32,
     height: u32,
+    room_size: Range<u32>,
     rng: &'a mut Rng,
 }
 
 impl<'a> MapBuilder<'a> {
-    pub fn new(room_count: usize, width: u32, height: u32, rng: &'a mut Rng) -> Self {
+    pub fn new(
+        room_count: u32,
+        width: u32,
+        height: u32,
+        room_size: Range<u32>,
+        rng: &'a mut Rng,
+    ) -> Self {
         Self {
-            rooms: Vec::with_capacity(room_count),
+            rooms: Vec::with_capacity(room_count as usize),
             width,
             height,
+            room_size,
             rng,
         }
     }
 
     fn build_random_rooms(&mut self, map: &mut Map) {
-        while self.rooms.len() < self.rooms.capacity() {
+        let mut iteration = 0;
+        let room_count = self.rooms.capacity();
+        while self.rooms.len() < room_count && iteration < room_count * 2 {
             let room = ascii_tilemap_plugin::geometry::Rect::with_dimension(
-                self.rng.u32(1..WIDTH - 10),
-                self.rng.u32(1..HEIGHT - 10),
-                self.rng.u32(2..10),
-                self.rng.u32(2..10),
+                self.rng.u32(0..self.width - self.room_size.end),
+                self.rng.u32(0..self.height - self.room_size.end),
+                self.rng.u32(self.room_size.clone()),
+                self.rng.u32(self.room_size.clone()),
             );
 
             if !self.rooms.iter().any(|r| r.intersect(&room)) {
                 for point in room.points() {
-                    if let Some(index) = map.try_index(point) {
-                        map.tiles[index] = TileType::Floor;
-                    } else {
-                        println!("tile not found at {}", point);
-                    }
+                    map.set_tile(point, TileType::Floor);
                 }
                 self.rooms.push(room);
             }
+            iteration += 1;
         }
     }
 
     fn build_vertical_tunnels(&self, map: &mut Map, y1: u32, y2: u32, x: u32) {
         use std::cmp::{max, min};
         for y in min(y1, y2)..=max(y1, y2) {
-            if let Some(index) = map.try_index(UVec2::new(x, y)) {
-                map.tiles[index] = TileType::Floor;
-            }
+            map.set_tile(UVec2::new(x, y), TileType::Floor);
         }
     }
 
     fn build_horizontal_tunnels(&self, map: &mut Map, x1: u32, x2: u32, y: u32) {
         use std::cmp::{max, min};
         for x in min(x1, x2)..=max(x1, x2) {
-            if let Some(index) = map.try_index(UVec2::new(x, y)) {
-                map.tiles[index] = TileType::Floor;
-            }
+            map.set_tile(UVec2::new(x, y), TileType::Floor);
         }
     }
 
@@ -134,7 +157,7 @@ impl<'a> MapBuilder<'a> {
             let prev = rooms[i - 1].center();
             let new = room.center();
 
-            if self.rng.u32(0..2) == 1 {
+            if self.rng.bool() {
                 self.build_horizontal_tunnels(map, prev.x, new.x, prev.y);
                 self.build_vertical_tunnels(map, prev.y, new.y, new.x);
             } else {
@@ -144,7 +167,14 @@ impl<'a> MapBuilder<'a> {
         }
     }
 
-    pub fn build(&mut self) -> (Map, UVec2) {
+    pub fn build(&mut self) -> Result<(Map, UVec2)> {
+        if self.width <= self.room_size.end || self.height <= self.room_size.end {
+            bail!(
+                "width and height must be higher than max room_size {}",
+                self.room_size.end
+            );
+        }
+
         let mut map = Map::new(self.width, self.height);
         map.tiles.fill(TileType::Wall);
 
@@ -152,6 +182,20 @@ impl<'a> MapBuilder<'a> {
         self.build_tunnels(&mut map);
 
         let player_start = self.rooms[0].center();
-        (map, player_start)
+        Ok((map, player_start))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ntest::timeout;
+
+    #[test]
+    #[timeout(50)]
+    fn build() {
+        let mut rng = fastrand::Rng::new();
+        rng.seed(42);
+        assert!(MapBuilder::new(20, 11, 11, 1..2, &mut rng).build().is_ok());
     }
 }

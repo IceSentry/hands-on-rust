@@ -23,6 +23,9 @@ mod rusty_dungeon_plugin;
 pub const WIDTH: u32 = 80;
 pub const HEIGHT: u32 = 50;
 
+pub const DISPLAY_WIDTH: u32 = WIDTH / 2;
+pub const DISPLAY_HEIGHT: u32 = HEIGHT / 2;
+
 pub const TILE_WIDTH: u32 = 16;
 pub const TILE_HEIGHT: u32 = 16;
 
@@ -30,10 +33,10 @@ fn main() {
     App::build()
         .insert_resource(WindowDescriptor {
             // TODO find a way to control this by the plugin
-            width: (WIDTH * TILE_WIDTH) as f32,
-            height: (HEIGHT * TILE_HEIGHT) as f32,
+            width: (DISPLAY_WIDTH * TILE_WIDTH) as f32,
+            height: (DISPLAY_HEIGHT * TILE_HEIGHT) as f32,
             title: String::from("hands on dungeon crawler"),
-            vsync: false,
+            // vsync: false,
             resizable: false,
             ..Default::default()
         })
@@ -42,10 +45,11 @@ fn main() {
         .add_plugin(AsciiTilemapPlugin)
         .insert_resource(AsciiTilemapSettings {
             tilesheet_asset_path: "16x16-sb-ascii.png",
-            width: WIDTH,
-            height: HEIGHT,
+            width: DISPLAY_WIDTH,
+            height: DISPLAY_HEIGHT,
             tile_width: TILE_WIDTH,
             tile_height: TILE_HEIGHT,
+            layers: 2,
             ..Default::default()
         })
         // .add_plugin(flappy_plugin::FlappyPlugin)
