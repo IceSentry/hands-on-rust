@@ -135,6 +135,7 @@ impl<'a> MapBuilder<'a> {
         }
     }
 
+    #[allow(clippy::unused_self)]
     fn build_vertical_tunnels(&self, map: &mut Map, y1: u32, y2: u32, x: u32) {
         use std::cmp::{max, min};
         for y in min(y1, y2)..=max(y1, y2) {
@@ -142,6 +143,7 @@ impl<'a> MapBuilder<'a> {
         }
     }
 
+    #[allow(clippy::unused_self)]
     fn build_horizontal_tunnels(&self, map: &mut Map, x1: u32, x2: u32, y: u32) {
         use std::cmp::{max, min};
         for x in min(x1, x2)..=max(x1, x2) {

@@ -14,45 +14,33 @@ pub mod geometry;
 
 const BACKGROUND_LAYER_ID: u32 = 0;
 
-pub struct AsciiTilemapPlugin;
-
+#[derive(Clone)]
 pub struct AsciiTilemapSettings {
     /// The asset path to the tilesheet texture
-    /// default = "tilesheet.png"
-    pub tilesheet_asset_path: &'static str,
+    tilesheet_asset_path: String,
     /// The amount of tiles displayed on the screen horizontally
-    /// default = 80
-    pub width: u32,
+    width: u32,
     /// The amount of tiles displayed on the screen horizontally
-    /// default = 50
-    pub height: u32,
+    height: u32,
     /// The amount of pixels horizontally for a single tile
-    /// default = 16
-    pub tile_width: u32,
+    tile_width: u32,
     /// The amount of pixels vertically for a single tile
-    /// default = 16
-    pub tile_height: u32,
+    tile_height: u32,
     /// The amount of tiles horizontally in the spritesheet
-    /// default = 16
-    pub tilesheet_width: u32,
+    tilesheet_width: u32,
     /// The amount of tiles vertically in the spritesheet
-    /// default = 16
-    pub tilesheet_height: u32,
+    tilesheet_height: u32,
     /// The amount of chunks horizontally
-    /// default = 1
-    pub horizontal_chunks: u32,
+    horizontal_chunks: u32,
     /// The amount of chunks vertically
-    /// default = 1
-    pub vertical_chunks: u32,
-    /// The amount of layers
-    /// default = 1
-    pub layers: u8,
+    vertical_chunks: u32,
+    layers: Vec<Layer>,
 }
 
 impl Default for AsciiTilemapSettings {
     fn default() -> Self {
         Self {
-            tilesheet_asset_path: "tilesheet.png",
+            tilesheet_asset_path: "tilesheet.png".into(),
             width: 80,
             height: 50,
             tile_width: 16,
@@ -61,8 +49,64 @@ impl Default for AsciiTilemapSettings {
             tilesheet_width: 16,
             horizontal_chunks: 1,
             vertical_chunks: 1,
-            layers: 1,
+            layers: vec![],
         }
+    }
+}
+
+impl AsciiTilemapSettings {
+    pub fn builder() -> AsciiTilemapSettingsBuilder {
+        AsciiTilemapSettingsBuilder::default()
+    }
+}
+
+pub struct AsciiTilemapSettingsBuilder {
+    settings: AsciiTilemapSettings,
+}
+
+impl Default for AsciiTilemapSettingsBuilder {
+    fn default() -> Self {
+        Self {
+            settings: AsciiTilemapSettings::default(),
+        }
+    }
+}
+
+impl AsciiTilemapSettingsBuilder {
+    pub fn with_dimensions(&mut self, width: u32, height: u32) -> &mut Self {
+        self.settings.width = width;
+        self.settings.height = height;
+        self
+    }
+
+    pub fn with_tile_dimensions(&mut self, width: u32, height: u32) -> &mut Self {
+        self.settings.tile_width = width;
+        self.settings.tile_height = height;
+        self
+    }
+
+    pub fn with_tilesheet_path<S: ToString>(&mut self, path: S) -> &mut Self {
+        self.settings.tilesheet_asset_path = path.to_string();
+        self
+    }
+
+    /// The dimension of the tilesheet
+    /// WARN in tiles not in pixels
+    pub fn with_tilesheet_dimensions(&mut self, width: u32, height: u32) -> &mut Self {
+        self.settings.tilesheet_width = width;
+        self.settings.tile_height = height;
+        self
+    }
+
+    pub fn with_layer(&mut self, layer_id: u8, is_background_transparent: bool) -> &mut Self {
+        self.settings
+            .layers
+            .push(Layer::new(layer_id, is_background_transparent));
+        self
+    }
+
+    pub fn build(&self) -> AsciiTilemapSettings {
+        self.settings.clone()
     }
 }
 
@@ -74,6 +118,37 @@ enum Stage {
 #[derive(Clone, Hash, Debug, PartialEq, Eq, SystemLabel)]
 pub struct Drawing;
 
+struct TileToDraw {
+    texture_index: char,
+    color: Color,
+}
+pub struct TilesToDraw(HashMap<UVec3, TileToDraw>);
+
+pub struct ActiveLayer(u32);
+
+// TODO support per layer tilesheet
+#[derive(Clone)]
+struct Layer {
+    background_id: u16,
+    foreground_id: u16,
+    is_background_transparent: bool,
+}
+
+impl Layer {
+    fn new(layer_id: u8, is_background_transparent: bool) -> Self {
+        let real_layer = u16::from(layer_id * 2);
+        Self {
+            background_id: real_layer,
+            foreground_id: real_layer + 1,
+            is_background_transparent,
+        }
+    }
+}
+
+struct Layers(Vec<Layer>);
+
+pub struct AsciiTilemapPlugin;
+
 impl Plugin for AsciiTilemapPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_plugin(TilemapPlugin)
@@ -82,41 +157,6 @@ impl Plugin for AsciiTilemapPlugin {
             .insert_resource(TilesToDraw(HashMap::default()))
             .insert_resource(ActiveLayer(0));
     }
-}
-
-struct TileToDraw {
-    texture_index: char,
-    color: Color,
-}
-
-pub struct TilesToDraw(HashMap<UVec3, TileToDraw>);
-
-pub struct ActiveLayer(u32);
-
-fn draw(
-    mut chunk_query: Query<&mut Chunk>,
-    mut tiles_to_draw: ResMut<TilesToDraw>,
-    mut tile_query: Query<(&mut Tile, &TileParent, &UVec2)>,
-) {
-    if tiles_to_draw.0.is_empty() {
-        return;
-    }
-
-    tile_query.for_each_mut(|(mut tile, tile_parent, tile_pos)| {
-        if let Some(tile_to_draw) = tiles_to_draw
-            .0
-            .get(&tile_pos.extend(tile_parent.layer_id.into()))
-        {
-            tile.texture_index = tile_to_draw.texture_index as u16;
-            tile.color = tile_to_draw.color;
-        }
-    });
-    tiles_to_draw.0.clear();
-
-    // always update all the chunks because we always clear the screen
-    chunk_query.for_each_mut(|mut chunk| {
-        chunk.needs_remesh = true;
-    });
 }
 
 fn setup(
@@ -131,7 +171,7 @@ fn setup(
 
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
 
-    let texture_handle = asset_server.load(settings.tilesheet_asset_path);
+    let texture_handle = asset_server.load(settings.tilesheet_asset_path.as_str());
     let material_handle = materials.add(ColorMaterial::texture(texture_handle));
 
     let map_entity = commands.spawn().id();
@@ -158,10 +198,9 @@ fn setup(
         map.add_layer(&mut commands, layer_id, layer_entity);
     };
 
-    for layer_id in 0..settings.layers {
-        let real_id = u16::from(layer_id * 2);
-        build_layer(real_id); // background
-        build_layer(real_id + 1); // foreground
+    for layer in &settings.layers {
+        build_layer(layer.background_id); // background
+        build_layer(layer.foreground_id); // foreground
     }
 
     let window_width = settings.width * settings.tile_width;
@@ -181,6 +220,32 @@ fn setup(
         "initializing ascii_tilemap_plugin...done {:?}",
         start.elapsed()
     );
+}
+
+fn draw(
+    mut chunk_query: Query<&mut Chunk>,
+    mut tiles_to_draw: ResMut<TilesToDraw>,
+    mut tile_query: Query<(&mut Tile, &TileParent, &UVec2)>,
+) {
+    if tiles_to_draw.0.is_empty() {
+        return;
+    }
+
+    tile_query.for_each_mut(|(mut tile, tile_parent, tile_pos)| {
+        if let Some(tile_to_draw) = tiles_to_draw
+            .0
+            .get(&tile_pos.extend(tile_parent.layer_id.into()))
+        {
+            tile.texture_index = tile_to_draw.texture_index as u16;
+            tile.color = tile_to_draw.color;
+        }
+    });
+    tiles_to_draw.0.clear();
+
+    // always update all the chunks because we always clear the screen
+    chunk_query.for_each_mut(|mut chunk| {
+        chunk.needs_remesh = true;
+    });
 }
 
 #[derive(SystemParam)]
@@ -271,14 +336,16 @@ impl<'a> DrawContext<'a> {
     /// Clears the `active_layer` with a specific color
     pub fn cls_color(&mut self, color: Color) {
         self.tile_query.for_each_mut(|(mut tile, tile_parent)| {
-            let real_layer = self.active_layer.0 * 2;
-            if real_layer == u32::from(tile_parent.layer_id)
-                || real_layer + 1 == u32::from(tile_parent.layer_id)
+            let active_layer = &self.settings.layers[self.active_layer.0 as usize];
+            if active_layer.background_id == tile_parent.layer_id
+                || active_layer.foreground_id == tile_parent.layer_id
             {
-                tile.texture_index = if real_layer == BACKGROUND_LAYER_ID {
+                tile.texture_index = if active_layer.background_id == tile_parent.layer_id
+                    && !active_layer.is_background_transparent
+                {
                     219 // ASCII code 219 = █ ( Block, graphic character )
                 } else {
-                    0
+                    0 // foreground and transparent backgrounds should be transparent
                 };
                 tile.color = color;
             }

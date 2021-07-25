@@ -36,22 +36,22 @@ fn main() {
             width: (DISPLAY_WIDTH * TILE_WIDTH) as f32,
             height: (DISPLAY_HEIGHT * TILE_HEIGHT) as f32,
             title: String::from("hands on dungeon crawler"),
-            // vsync: false,
+            vsync: false,
             resizable: false,
             ..Default::default()
         })
         .add_plugins(DefaultPlugins)
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_plugin(AsciiTilemapPlugin)
-        .insert_resource(AsciiTilemapSettings {
-            tilesheet_asset_path: "16x16-sb-ascii.png",
-            width: DISPLAY_WIDTH,
-            height: DISPLAY_HEIGHT,
-            tile_width: TILE_WIDTH,
-            tile_height: TILE_HEIGHT,
-            layers: 2,
-            ..Default::default()
-        })
+        .insert_resource(
+            AsciiTilemapSettings::builder()
+                .with_tilesheet_path("16x16-sb-ascii.png")
+                .with_dimensions(DISPLAY_WIDTH, DISPLAY_HEIGHT)
+                .with_tile_dimensions(TILE_WIDTH, TILE_HEIGHT)
+                .with_layer(0, false)
+                .with_layer(1, true)
+                .build(),
+        )
         // .add_plugin(flappy_plugin::FlappyPlugin)
         .add_plugin(rusty_dungeon_plugin::RustyDungeonPlugin)
         .run();
