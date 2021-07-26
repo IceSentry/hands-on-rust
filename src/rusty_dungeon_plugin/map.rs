@@ -1,8 +1,4 @@
-use super::camera::Camera;
-use crate::{
-    ascii_tilemap_plugin::{self, DrawContext},
-    HEIGHT, WIDTH,
-};
+use crate::{ascii_tilemap_plugin, HEIGHT, WIDTH};
 use anyhow::{bail, Result};
 use bevy::prelude::*;
 use fastrand::Rng;
@@ -33,31 +29,6 @@ impl Map {
             width,
             height,
             tiles: vec![TileType::Floor; (width * height) as usize],
-        }
-    }
-
-    pub fn render(&self, ctx: &mut DrawContext, camera: &Camera) {
-        ctx.set_active_layer(0);
-        for y in camera.top_y..=camera.bottom_y {
-            for x in camera.left_x..camera.right_x {
-                match self.get_tile(UVec2::new(x, y)) {
-                    Some(TileType::Floor) => ctx.set(
-                        x - camera.left_x,
-                        y - camera.top_y,
-                        Color::BLACK,
-                        Color::WHITE,
-                        '.',
-                    ),
-                    Some(TileType::Wall) => ctx.set(
-                        x - camera.left_x,
-                        y - camera.top_y,
-                        Color::BLACK,
-                        Color::WHITE,
-                        '#',
-                    ),
-                    None => (),
-                }
-            }
         }
     }
 
@@ -169,7 +140,7 @@ impl<'a> MapBuilder<'a> {
         }
     }
 
-    pub fn build(&mut self) -> Result<(Map, UVec2)> {
+    pub fn build(&mut self) -> Result<(Map, UVec2, Vec<ascii_tilemap_plugin::geometry::Rect>)> {
         if self.width <= self.room_size.end || self.height <= self.room_size.end {
             bail!(
                 "width and height must be higher than max room_size {}",
@@ -184,7 +155,7 @@ impl<'a> MapBuilder<'a> {
         self.build_tunnels(&mut map);
 
         let player_start = self.rooms[0].center();
-        Ok((map, player_start))
+        Ok((map, player_start, self.rooms.clone()))
     }
 }
 

@@ -32,6 +32,7 @@ pub const TILE_HEIGHT: u32 = 16;
 fn main() {
     let settings = AsciiTilemapSettings::builder()
         .with_tilesheet_path("16x16-sb-ascii.png")
+        // .with_tilesheet_path("dungeonfont.png")
         .with_dimensions(DISPLAY_WIDTH, DISPLAY_HEIGHT)
         .with_tile_dimensions(TILE_WIDTH, TILE_HEIGHT)
         .with_layer(0, false)

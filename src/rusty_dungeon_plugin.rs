@@ -1,5 +1,6 @@
 use crate::{
     ascii_tilemap_plugin::{DrawContext, Drawing},
+    rusty_dungeon_plugin::spawner::spawn_monster,
     DISPLAY_HEIGHT, DISPLAY_WIDTH, HEIGHT, WIDTH,
 };
 use bevy::{
@@ -9,28 +10,45 @@ use bevy::{
     utils::Instant,
 };
 use camera::Camera;
-use map::{Map, MapBuilder};
-use player::Player;
+use map::MapBuilder;
+
+use self::{
+    spawner::spawn_player,
+    systems::{
+        collisions::collisions, entity_render::entity_render, map_render::map_render,
+        player_input::player_input,
+    },
+};
 
 mod camera;
+mod components;
 mod map;
-mod player;
+mod spawner;
+mod systems;
 
 pub struct RustyDungeonPlugin;
 
 #[derive(Clone, Hash, Debug, PartialEq, Eq, SystemLabel)]
-struct UpdateSystem;
+struct ClearScreenSystem;
 
 impl Plugin for RustyDungeonPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_startup_system(startup.system())
             .add_system_set(
                 SystemSet::new()
-                    .with_run_criteria(FixedTimestep::step(0.1))
-                    .with_system(update.system().label(UpdateSystem).before(Drawing)),
+                    .with_run_criteria(FixedTimestep::steps_per_second(30.0))
+                    .with_system(player_input.system())
+                    .with_system(collisions.system()),
             )
-            // .add_system(update.system().label(UpdateSystem).before(Drawing))
-            .add_system(diagnostic.system().after(UpdateSystem).before(Drawing));
+            .add_system(map_render.system().before(ClearScreenSystem))
+            .add_system(entity_render.system().before(ClearScreenSystem))
+            .add_system(diagnostic.system().before(ClearScreenSystem))
+            .add_system(
+                clear_screen
+                    .system()
+                    .label(ClearScreenSystem)
+                    .before(Drawing),
+            );
     }
 }
 
@@ -42,12 +60,10 @@ fn startup(mut commands: Commands) {
     info!("initializing rusty_dungeon...");
     let start = Instant::now();
 
-    info!("Generating map...");
-    let start_gen = Instant::now();
-
     let mut rng = fastrand::Rng::new();
     rng.seed(42);
-    let (map, player_start) = MapBuilder::new(
+
+    let (map, player_start, rooms) = MapBuilder::new(
         NUM_ROOMS,
         WIDTH,
         HEIGHT,
@@ -57,26 +73,19 @@ fn startup(mut commands: Commands) {
     .build()
     .expect("failed to build the map");
 
-    info!("Generating map...done {:?}", start_gen.elapsed());
-
     commands.insert_resource(map);
-    commands.insert_resource(Player::new(player_start.x, player_start.y));
     commands.insert_resource(Camera::new(player_start, DISPLAY_WIDTH, DISPLAY_HEIGHT));
+
+    spawn_player(&mut commands, player_start);
+    for pos in rooms.iter().skip(1).map(|r| r.center()) {
+        spawn_monster(&mut commands, &mut rng, pos);
+    }
 
     info!("initializing rusty_dungeon...done {:?}", start.elapsed());
 }
 
-fn update(
-    mut ctx: DrawContext,
-    map: Res<Map>,
-    keyboard_input: Res<Input<KeyCode>>,
-    mut player: ResMut<Player>,
-    mut camera: ResMut<Camera>,
-) {
+fn clear_screen(mut ctx: DrawContext) {
     ctx.cls_all_layers();
-    player.update(&map, &keyboard_input, &mut camera);
-    map.render(&mut ctx, &camera);
-    player.render(&mut ctx, &camera);
 }
 
 fn diagnostic(mut ctx: DrawContext, diagnostics: ResMut<Diagnostics>) {

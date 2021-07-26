@@ -10,6 +10,7 @@ use bevy_ecs_tilemap::{
     Chunk, LayerBuilder, LayerSettings, Map, MapQuery, Tile, TileBundle, TileParent, TilemapPlugin,
 };
 
+pub mod color;
 pub mod geometry;
 
 const BACKGROUND_LAYER_ID: u32 = 0;
@@ -262,7 +263,7 @@ pub struct DrawContext<'a> {
 
 impl<'a> DrawContext<'a> {
     /// sets a tile to a specific character
-    pub fn set(&mut self, x: u32, y: u32, background: Color, foreground: Color, char: char) {
+    pub fn set(&mut self, x: u32, y: u32, background: Color, foreground: Color, glyph: char) {
         if x >= self.settings.width || y >= self.settings.height {
             return;
         }
@@ -283,7 +284,7 @@ impl<'a> DrawContext<'a> {
             position.extend(u32::from(active_layer.foreground_id)),
             TileToDraw {
                 color: foreground,
-                texture_index: char,
+                texture_index: glyph,
             },
         );
     }
