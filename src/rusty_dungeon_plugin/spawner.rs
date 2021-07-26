@@ -1,4 +1,4 @@
-use super::components::{Enemy, Player, Render};
+use super::components::{Enemy, MovingRandomly, Player, Render};
 use crate::ascii_tilemap_plugin::color::GlyphColor;
 use bevy::prelude::*;
 use fastrand::Rng;
@@ -19,6 +19,7 @@ pub fn spawn_monster(commands: &mut Commands, rng: &mut Rng, position: UVec2) {
         .spawn()
         .insert(Enemy)
         .insert(position)
+        .insert(MovingRandomly)
         .insert(Render {
             color: GlyphColor::foreground(Color::YELLOW),
             glyph: match rng.u8(0..4) {

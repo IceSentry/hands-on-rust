@@ -26,17 +26,17 @@ pub const HEIGHT: u32 = 50;
 pub const DISPLAY_WIDTH: u32 = WIDTH / 2;
 pub const DISPLAY_HEIGHT: u32 = HEIGHT / 2;
 
-pub const TILE_WIDTH: u32 = 16;
-pub const TILE_HEIGHT: u32 = 16;
+pub const TILE_WIDTH: u32 = 32;
+pub const TILE_HEIGHT: u32 = 32;
 
 fn main() {
     let settings = AsciiTilemapSettings::builder()
-        .with_tilesheet_path("16x16-sb-ascii.png")
-        // .with_tilesheet_path("dungeonfont.png")
+        // .with_tilesheet_path("16x16-sb-ascii.png")
+        .with_tilesheet_path("dungeonfont.png")
         .with_dimensions(DISPLAY_WIDTH, DISPLAY_HEIGHT)
         .with_tile_dimensions(TILE_WIDTH, TILE_HEIGHT)
         .with_layer(0, false, false)
-        .with_layer(1, true, false)
+        .with_layer(1, true, true)
         .with_layer(2, true, false)
         .build();
 
@@ -47,7 +47,7 @@ fn main() {
             width: settings.window_width(),
             height: settings.window_height(),
             title: String::from("hands on dungeon crawler"),
-            // vsync: false,
+            vsync: false,
             resizable: false,
             ..Default::default()
         })

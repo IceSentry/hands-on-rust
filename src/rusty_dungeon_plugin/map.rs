@@ -106,16 +106,14 @@ impl<'a> MapBuilder<'a> {
         }
     }
 
-    #[allow(clippy::unused_self)]
-    fn build_vertical_tunnels(&self, map: &mut Map, y1: u32, y2: u32, x: u32) {
+    fn build_vertical_tunnels(map: &mut Map, y1: u32, y2: u32, x: u32) {
         use std::cmp::{max, min};
         for y in min(y1, y2)..=max(y1, y2) {
             map.set_tile(UVec2::new(x, y), TileType::Floor);
         }
     }
 
-    #[allow(clippy::unused_self)]
-    fn build_horizontal_tunnels(&self, map: &mut Map, x1: u32, x2: u32, y: u32) {
+    fn build_horizontal_tunnels(map: &mut Map, x1: u32, x2: u32, y: u32) {
         use std::cmp::{max, min};
         for x in min(x1, x2)..=max(x1, x2) {
             map.set_tile(UVec2::new(x, y), TileType::Floor);
@@ -131,11 +129,11 @@ impl<'a> MapBuilder<'a> {
             let new = room.center();
 
             if self.rng.bool() {
-                self.build_horizontal_tunnels(map, prev.x, new.x, prev.y);
-                self.build_vertical_tunnels(map, prev.y, new.y, new.x);
+                Self::build_horizontal_tunnels(map, prev.x, new.x, prev.y);
+                Self::build_vertical_tunnels(map, prev.y, new.y, new.x);
             } else {
-                self.build_vertical_tunnels(map, prev.y, new.y, prev.x);
-                self.build_horizontal_tunnels(map, prev.x, new.x, new.y);
+                Self::build_vertical_tunnels(map, prev.y, new.y, prev.x);
+                Self::build_horizontal_tunnels(map, prev.x, new.x, new.y);
             }
         }
     }

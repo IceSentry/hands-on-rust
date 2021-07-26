@@ -6,8 +6,11 @@ pub struct Render {
     pub glyph: char,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub struct Player;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub struct Enemy;
+
+#[derive(Debug)]
+pub struct MovingRandomly;

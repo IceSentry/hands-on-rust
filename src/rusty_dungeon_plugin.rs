@@ -16,7 +16,7 @@ use self::{
     spawner::spawn_player,
     systems::{
         collisions::collisions, entity_render::entity_render, map_render::map_render,
-        player_input::player_input,
+        player_input::player_input, random_move::random_move,
     },
 };
 
@@ -29,7 +29,7 @@ mod systems;
 pub struct RustyDungeonPlugin;
 
 #[derive(Clone, Hash, Debug, PartialEq, Eq, SystemLabel)]
-struct ClearScreenSystem;
+struct RenderSystem;
 
 impl Plugin for RustyDungeonPlugin {
     fn build(&self, app: &mut AppBuilder) {
@@ -37,18 +37,20 @@ impl Plugin for RustyDungeonPlugin {
             .add_system_set(
                 SystemSet::new()
                     .with_run_criteria(FixedTimestep::steps_per_second(30.0))
+                    .before(RenderSystem)
                     .with_system(player_input.system())
+                    .with_system(random_move.system())
                     .with_system(collisions.system()),
             )
-            .add_system(map_render.system().before(ClearScreenSystem))
-            .add_system(entity_render.system().before(ClearScreenSystem))
-            .add_system(diagnostic.system().before(ClearScreenSystem))
-            .add_system(
-                clear_screen
-                    .system()
-                    .label(ClearScreenSystem)
-                    .before(Drawing),
-            );
+            .add_system_set(
+                SystemSet::new()
+                    .label(RenderSystem)
+                    .before(Drawing)
+                    .with_system(map_render.system())
+                    .with_system(entity_render.system())
+                    .with_system(diagnostic.system()),
+            )
+            .add_system(clear_screen.system().after(RenderSystem).before(Drawing));
     }
 }
 
