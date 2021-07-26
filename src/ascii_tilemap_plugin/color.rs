@@ -20,4 +20,11 @@ impl GlyphColor {
             foreground,
         }
     }
+
+    pub fn foreground(foreground: Color) -> Self {
+        Self {
+            foreground,
+            ..Default::default()
+        }
+    }
 }

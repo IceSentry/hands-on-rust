@@ -35,9 +35,9 @@ fn main() {
         // .with_tilesheet_path("dungeonfont.png")
         .with_dimensions(DISPLAY_WIDTH, DISPLAY_HEIGHT)
         .with_tile_dimensions(TILE_WIDTH, TILE_HEIGHT)
-        .with_layer(0, false)
-        .with_layer(1, true)
-        .with_layer(2, true)
+        .with_layer(0, false, false)
+        .with_layer(1, true, false)
+        .with_layer(2, true, false)
         .build();
 
     App::build()

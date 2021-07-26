@@ -20,7 +20,7 @@ pub fn spawn_monster(commands: &mut Commands, rng: &mut Rng, position: UVec2) {
         .insert(Enemy)
         .insert(position)
         .insert(Render {
-            color: GlyphColor::default(),
+            color: GlyphColor::foreground(Color::YELLOW),
             glyph: match rng.u8(0..4) {
                 0 => 'E',
                 1 => 'O',

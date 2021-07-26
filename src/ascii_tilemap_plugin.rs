@@ -107,10 +107,17 @@ impl AsciiTilemapSettingsBuilder {
         self
     }
 
-    pub fn with_layer(&mut self, layer_id: u8, is_background_transparent: bool) -> &mut Self {
-        self.settings
-            .layers
-            .push(Layer::new(layer_id, is_background_transparent));
+    pub fn with_layer(
+        &mut self,
+        layer_id: u8,
+        is_transparent: bool,
+        is_glyph_background_transparent: bool,
+    ) -> &mut Self {
+        self.settings.layers.push(Layer::new(
+            layer_id,
+            is_transparent,
+            is_glyph_background_transparent,
+        ));
         self
     }
 
@@ -140,16 +147,18 @@ pub struct ActiveLayer(u32);
 struct Layer {
     background_id: u16,
     foreground_id: u16,
-    is_background_transparent: bool,
+    is_transparent: bool,
+    is_glyph_background_transparent: bool,
 }
 
 impl Layer {
-    fn new(layer_id: u8, is_background_transparent: bool) -> Self {
+    fn new(layer_id: u8, is_transparent: bool, is_glyph_background_transparent: bool) -> Self {
         let real_layer = u16::from(layer_id * 2);
         Self {
             background_id: real_layer,
             foreground_id: real_layer + 1,
-            is_background_transparent,
+            is_transparent,
+            is_glyph_background_transparent,
         }
     }
 }
@@ -271,15 +280,15 @@ impl<'a> DrawContext<'a> {
         // This makes sure the origin is at the top left of the tilemap
         let position = UVec2::new(x, self.settings.height as u32 - 1 - y);
         let active_layer = self.get_active_layer();
-        // if !active_layer.is_background_transparent {
-        self.tiles_to_draw.0.insert(
-            position.extend(u32::from(active_layer.background_id)),
-            TileToDraw {
-                color: background,
-                texture_index: 219 as char, // ASCII code 219 = █ ( Block, graphic character )
-            },
-        );
-        // }
+        if !active_layer.is_glyph_background_transparent {
+            self.tiles_to_draw.0.insert(
+                position.extend(u32::from(active_layer.background_id)),
+                TileToDraw {
+                    color: background,
+                    texture_index: 219 as char, // ASCII code 219 = █ ( Block, graphic character )
+                },
+            );
+        }
         self.tiles_to_draw.0.insert(
             position.extend(u32::from(active_layer.foreground_id)),
             TileToDraw {
@@ -344,14 +353,7 @@ impl<'a> DrawContext<'a> {
             if active_layer.background_id == tile_parent.layer_id
                 || active_layer.foreground_id == tile_parent.layer_id
             {
-                tile.texture_index = if tile_parent.layer_id == active_layer.background_id
-                    && !active_layer.is_background_transparent
-                {
-                    219 // ASCII code 219 = █ ( Block, graphic character )
-                } else {
-                    0 // foreground and transparent backgrounds should be transparent
-                };
-                tile.color = color;
+                Self::clear_tile(&mut tile, tile_parent.layer_id, active_layer, color);
             }
         });
     }
@@ -367,17 +369,18 @@ impl<'a> DrawContext<'a> {
             } else {
                 (tile_parent.layer_id - 1) / 2
             };
-            let layer = &self.settings.layers[layer_index as usize];
-
-            tile.texture_index = if tile_parent.layer_id == layer.background_id
-                && !layer.is_background_transparent
-            {
-                219 // ASCII code 219 = █ ( Block, graphic character )
-            } else {
-                0 // foreground and transparent backgrounds should be invisible after clear
-            };
-            tile.color = color;
+            let layer = self.settings.layers[layer_index as usize];
+            Self::clear_tile(&mut tile, tile_parent.layer_id, layer, color);
         });
+    }
+
+    fn clear_tile(tile: &mut Tile, layer_id: u16, layer: Layer, color: Color) {
+        tile.texture_index = if layer_id == layer.background_id && !layer.is_transparent {
+            219 // ASCII code 219 = █ ( Block, graphic character )
+        } else {
+            0 // foreground and transparent backgrounds should be invisible after clear
+        };
+        tile.color = color;
     }
 
     /// sets the active layer used by the `DrawContext`
