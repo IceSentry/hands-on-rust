@@ -93,7 +93,7 @@ fn clear_screen(mut ctx: DrawContext) {
 fn diagnostic(mut ctx: DrawContext, diagnostics: ResMut<Diagnostics>) {
     let fps = diagnostics
         .get(FrameTimeDiagnosticsPlugin::FPS)
-        .and_then(Diagnostic::average);
+        .and_then(Diagnostic::value);
     if let Some(fps) = fps {
         ctx.set_active_layer(2);
         ctx.print(0, 0, &format!("FPS {:.0}", fps));
