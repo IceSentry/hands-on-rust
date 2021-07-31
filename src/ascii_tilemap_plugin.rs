@@ -58,6 +58,9 @@ pub enum DrawCommand {
         layer_id: u16,
         color: Color,
     },
+    ClearAllLayers {
+        color: Color,
+    },
 }
 type CommandBuffer = Vec<DrawCommand>;
 type Layers = Vec<Vec<TileInfo>>;
@@ -160,37 +163,50 @@ fn process_command_buffer(
     // Use an internal representation of the map to do all the operations.
     // Once it's done, send the end result to the tilemap
     for command in command_buffer.iter() {
-        match command {
+        match *command {
             DrawCommand::DrawTile {
                 layer_id,
                 position,
                 tile_info,
             } => {
                 let index = (position.y * settings.width + position.x) as usize;
-                let mut tile = &mut layers[*layer_id as usize][index];
-                *tile = *tile_info;
+                let mut tile = &mut layers[layer_id as usize][index];
+                *tile = tile_info;
             }
             DrawCommand::ClearLayer { layer_id, color } => {
-                let layer_setting_id = if layer_id % 2 == 0 {
-                    layer_id / 2
-                } else {
-                    (layer_id - 1) / 2
-                };
-                let layer_setting = settings.layers[layer_setting_id as usize];
-                for mut tile in &mut layers[*layer_id as usize] {
-                    tile.glyph = if *layer_id == layer_setting.background_id
-                        && !layer_setting.is_transparent
-                    {
-                        219 as char // ASCII code 219 = █ ( Block, graphic character )
-                    } else {
-                        0 as char // foreground and transparent backgrounds should be invisible after clear
-                    };
-                    tile.color = *color;
+                let layer_id = layer_id as usize;
+                let layer_setting = settings.layers[get_layer_setting_index(layer_id)];
+                clear_layer(&mut layers[layer_id], layer_id, layer_setting, color);
+            }
+            DrawCommand::ClearAllLayers { color } => {
+                for (layer_id, layer) in layers.iter_mut().enumerate() {
+                    let layer_setting = settings.layers[get_layer_setting_index(layer_id)];
+                    clear_layer(layer, layer_id, layer_setting, color);
                 }
             }
         }
     }
     command_buffer.clear();
+}
+
+fn get_layer_setting_index(layer_id: usize) -> usize {
+    if layer_id % 2 == 0 {
+        layer_id / 2
+    } else {
+        (layer_id - 1) / 2
+    }
+}
+
+fn clear_layer(layer: &mut Vec<TileInfo>, layer_id: usize, layer_setting: Layer, color: Color) {
+    for mut tile in layer {
+        tile.glyph =
+            if layer_id == layer_setting.background_id as usize && !layer_setting.is_transparent {
+                219 as char // ASCII code 219 = █ ( Block, graphic character )
+            } else {
+                0 as char // foreground and transparent backgrounds should be invisible after clear
+            };
+        tile.color = color;
+    }
 }
 
 fn draw(
@@ -220,6 +236,7 @@ fn draw(
 
 #[derive(SystemParam)]
 pub struct DrawContext<'a> {
+    commands: Commands<'a>,
     settings: Res<'a, AsciiTilemapSettings>,
     active_layer: ResMut<'a, ActiveLayer>,
     command_buffer: ResMut<'a, CommandBuffer>,
@@ -323,16 +340,8 @@ impl<'a> DrawContext<'a> {
     }
 
     pub fn cls_color_all_layers(&mut self, color: Color) {
-        for layer in &self.settings.layers {
-            self.command_buffer.push(DrawCommand::ClearLayer {
-                layer_id: layer.background_id,
-                color,
-            });
-            self.command_buffer.push(DrawCommand::ClearLayer {
-                layer_id: layer.foreground_id,
-                color,
-            });
-        }
+        self.command_buffer
+            .push(DrawCommand::ClearAllLayers { color });
     }
 
     pub fn set_active_layer(&mut self, layer: u8) {
