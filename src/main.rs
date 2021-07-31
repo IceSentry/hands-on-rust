@@ -9,7 +9,7 @@
     clippy::cast_sign_loss
 )]
 
-use ascii_tilemap_plugin::{AsciiTilemapPlugin, AsciiTilemapSettings};
+use ascii_tilemap_plugin::{settings::AsciiTilemapSettings, AsciiTilemapPlugin};
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
 
 mod ascii_tilemap_plugin;
@@ -17,7 +17,6 @@ mod flappy_plugin;
 mod rusty_dungeon_plugin;
 
 // TODO
-// * use layers for background and foreground
 // * find a way to control the window dimension from the plugin or update the tilemap size on resize
 
 pub const WIDTH: u32 = 80;
@@ -35,8 +34,12 @@ fn main() {
         .with_tilesheet_path("dungeonfont.png")
         .with_dimensions(DISPLAY_WIDTH, DISPLAY_HEIGHT)
         .with_tile_dimensions(TILE_WIDTH, TILE_HEIGHT)
+        .with_chunks(1, 1)
+        // map
         .with_layer(0, false, false)
+        // entities
         .with_layer(1, true, true)
+        // diagnostic
         .with_layer(2, true, false)
         .build();
 
@@ -48,12 +51,13 @@ fn main() {
             height: settings.window_height(),
             title: String::from("hands on dungeon crawler"),
             vsync: false,
-            resizable: false,
             ..Default::default()
         })
+        .insert_resource(ClearColor(Color::BLACK))
         .add_plugins(DefaultPlugins)
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_plugin(AsciiTilemapPlugin)
+        .add_system(bevy::input::system::exit_on_esc_system.system())
         .insert_resource(settings)
         // .add_plugin(flappy_plugin::FlappyPlugin)
         .add_plugin(rusty_dungeon_plugin::RustyDungeonPlugin)

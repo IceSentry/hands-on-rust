@@ -50,7 +50,7 @@ impl Plugin for RustyDungeonPlugin {
                     .with_system(entity_render.system())
                     .with_system(diagnostic.system()),
             )
-            .add_system(clear_screen.system().after(RenderSystem).before(Drawing));
+            .add_system(clear_screen.system().before(RenderSystem).before(Drawing));
     }
 }
 
