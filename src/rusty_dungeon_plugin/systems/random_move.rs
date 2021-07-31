@@ -3,6 +3,8 @@ use bevy::prelude::*;
 use crate::rusty_dungeon_plugin::{components::MovingRandomly, map::Map};
 
 pub fn random_move(map: Res<Map>, query: Query<&mut UVec2, With<MovingRandomly>>) {
+    puffin::profile_function!();
+
     query.for_each_mut(|mut pos| {
         let rng = fastrand::Rng::new();
         let destination = match rng.u8(0..4) {

@@ -7,6 +7,8 @@ pub fn player_input(
     mut camera: ResMut<Camera>,
     player_query: Query<&mut UVec2, With<Player>>,
 ) {
+    puffin::profile_function!();
+
     let delta = if keyboard_input.pressed(KeyCode::Left) || keyboard_input.pressed(KeyCode::A) {
         Vec2::new(-1., 0.)
     } else if keyboard_input.pressed(KeyCode::Right) || keyboard_input.pressed(KeyCode::D) {

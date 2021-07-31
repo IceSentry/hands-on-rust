@@ -160,6 +160,8 @@ fn process_command_buffer(
     settings: Res<AsciiTilemapSettings>,
     mut layers: ResMut<Layers>,
 ) {
+    puffin::profile_function!();
+
     // Use an internal representation of the map to do all the operations.
     // Once it's done, send the end result to the tilemap
     for command in command_buffer.iter() {
@@ -215,6 +217,8 @@ fn draw(
     layers: Res<Layers>,
     settings: Res<AsciiTilemapSettings>,
 ) {
+    puffin::profile_function!();
+
     let mut chunks = HashSet::default();
     tile_query.for_each_mut(|(mut tile, tile_parent, pos)| {
         let index = (pos.y * settings.width + pos.x) as usize;
@@ -245,6 +249,8 @@ pub struct DrawContext<'a> {
 impl<'a> DrawContext<'a> {
     /// sets a tile to a specific character
     pub fn set(&mut self, x: u32, y: u32, background: Color, foreground: Color, glyph: char) {
+        puffin::profile_function!();
+
         if x >= self.settings.width || y >= self.settings.height {
             // ignores anything out of bounds
             return;
@@ -284,6 +290,8 @@ impl<'a> DrawContext<'a> {
         foreground: Color,
         text: &str,
     ) {
+        puffin::profile_function!();
+
         for (i, char) in text.chars().enumerate() {
             self.set(x + i as u32, y, background, foreground, char);
         }
@@ -297,6 +305,8 @@ impl<'a> DrawContext<'a> {
         foreground: Color,
         text: &str,
     ) {
+        puffin::profile_function!();
+
         self.print_color(
             (self.settings.width / 2) - (text.to_string().len() as u32 / 2),
             y,
@@ -309,21 +319,29 @@ impl<'a> DrawContext<'a> {
     /// Prints a string at the given position
     /// if the string is longer than the viewport it will get truncated, wrapping is not handled
     pub fn print(&mut self, x: u32, y: u32, text: &str) {
+        puffin::profile_function!();
+
         self.print_color(x, y, Color::BLACK, Color::WHITE, text);
     }
 
     /// prints a string centered on the x axis
     pub fn print_centered(&mut self, y: u32, text: &str) {
+        puffin::profile_function!();
+
         self.print_color_centered(y, Color::BLACK, Color::WHITE, text);
     }
 
     /// Clears the active layer
     pub fn cls(&mut self) {
+        puffin::profile_function!();
+
         self.cls_color(Color::BLACK);
     }
 
     /// Clears the active layer with a specific color
     pub fn cls_color(&mut self, color: Color) {
+        puffin::profile_function!();
+
         let active_layer = self.get_active_layer();
         self.command_buffer.push(DrawCommand::ClearLayer {
             layer_id: active_layer.background_id,
@@ -336,19 +354,27 @@ impl<'a> DrawContext<'a> {
     }
 
     pub fn cls_all_layers(&mut self) {
+        puffin::profile_function!();
+
         self.cls_color_all_layers(Color::BLACK);
     }
 
     pub fn cls_color_all_layers(&mut self, color: Color) {
+        puffin::profile_function!();
+
         self.command_buffer
             .push(DrawCommand::ClearAllLayers { color });
     }
 
     pub fn set_active_layer(&mut self, layer: u8) {
+        puffin::profile_function!();
+
         self.active_layer.0 = u32::from(layer);
     }
 
     fn get_active_layer(&self) -> Layer {
+        puffin::profile_function!();
+
         self.settings.layers[self.active_layer.0 as usize]
     }
 }

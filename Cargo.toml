@@ -11,3 +11,6 @@ bevy_ecs_tilemap = { git = "https://github.com/StarArawn/bevy_ecs_tilemap.git/",
 fastrand = "1.4.1"
 ntest = "0.7.3"
 anyhow = "1.0.42"
+bevy_egui = "0.6.1"
+puffin = "0.6.0"
+puffin_egui = "0.4.1"

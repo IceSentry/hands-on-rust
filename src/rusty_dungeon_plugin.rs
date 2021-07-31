@@ -87,10 +87,14 @@ fn startup(mut commands: Commands) {
 }
 
 fn clear_screen(mut ctx: DrawContext) {
+    puffin::profile_function!();
+
     ctx.cls_all_layers();
 }
 
 fn diagnostic(mut ctx: DrawContext, diagnostics: ResMut<Diagnostics>) {
+    puffin::profile_function!();
+
     let fps = diagnostics
         .get(FrameTimeDiagnosticsPlugin::FPS)
         .and_then(Diagnostic::value);

@@ -33,24 +33,32 @@ impl Map {
     }
 
     pub fn set_tile(&mut self, position: UVec2, tile: TileType) {
+        puffin::profile_function!();
+
         if let Some(index) = self.try_index(position) {
             self.tiles[index] = tile;
         }
     }
 
     pub fn get_tile(&self, position: UVec2) -> Option<TileType> {
+        puffin::profile_function!();
+
         self.try_index(position).map(|index| self.tiles[index])
     }
 
     pub fn in_bounds(&self, point: UVec2) -> bool {
+        puffin::profile_function!();
+
         point.x < self.width && point.y < self.height
     }
 
     pub fn can_enter_tile(&self, point: UVec2) -> bool {
+        puffin::profile_function!();
+
         self.in_bounds(point) && self.get_tile(point) == Some(TileType::Floor)
     }
 
-    pub fn try_index(&self, point: UVec2) -> Option<usize> {
+    fn try_index(&self, point: UVec2) -> Option<usize> {
         if self.in_bounds(point) {
             Some(((point.y * self.width) + point.x) as usize)
         } else {
