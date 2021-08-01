@@ -1,31 +1,37 @@
-use crate::rusty_dungeon_plugin::{camera::Camera, components::Player, map::Map};
-use bevy::prelude::*;
+use crate::rusty_dungeon_plugin::{
+    components::{Player, WantsToMove},
+    TurnState,
+};
+use bevy::{input::keyboard::KeyboardInput, prelude::*};
 
 pub fn player_input(
-    keyboard_input: Res<Input<KeyCode>>,
-    map: Res<Map>,
-    mut camera: ResMut<Camera>,
-    player_query: Query<&mut UVec2, With<Player>>,
+    mut commands: Commands,
+    player_query: Query<(Entity, &UVec2), With<Player>>,
+    mut turn_state: ResMut<State<TurnState>>,
+    mut keyboard_input_events: EventReader<KeyboardInput>,
 ) {
     puffin::profile_function!();
 
-    let delta = if keyboard_input.pressed(KeyCode::Left) || keyboard_input.pressed(KeyCode::A) {
-        Vec2::new(-1., 0.)
-    } else if keyboard_input.pressed(KeyCode::Right) || keyboard_input.pressed(KeyCode::D) {
-        Vec2::new(1., 0.)
-    } else if keyboard_input.pressed(KeyCode::Up) || keyboard_input.pressed(KeyCode::W) {
-        Vec2::new(0., -1.)
-    } else if keyboard_input.pressed(KeyCode::Down) || keyboard_input.pressed(KeyCode::S) {
-        Vec2::new(0., 1.)
-    } else {
-        Vec2::ZERO
-    };
+    // Only process the first event
+    if let Some(event) = keyboard_input_events.iter().find(|x| x.state.is_pressed()) {
+        let delta = match event.key_code {
+            Some(KeyCode::Left | KeyCode::A) => Vec2::new(-1., 0.),
+            Some(KeyCode::Right | KeyCode::D) => Vec2::new(1., 0.),
+            Some(KeyCode::Up | KeyCode::W) => Vec2::new(0., -1.),
+            Some(KeyCode::Down | KeyCode::S) => Vec2::new(0., 1.),
+            _ => Vec2::ZERO,
+        };
 
-    player_query.for_each_mut(|mut position| {
-        let new_position = (position.as_f32() + delta).as_u32();
-        if map.can_enter_tile(new_position) {
-            *position = new_position;
-            camera.on_player_move(new_position);
+        player_query.for_each_mut(|(entity, position)| {
+            let destination = (position.as_f32() + delta).as_u32();
+            commands.spawn().insert(WantsToMove {
+                entity,
+                destination,
+            });
+        });
+
+        if let Err(e) = turn_state.set(TurnState::PlayerTurn) {
+            warn!("Failed to set state {}", e);
         }
-    });
+    }
 }

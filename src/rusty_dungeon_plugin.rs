@@ -4,7 +4,6 @@ use crate::{
     DISPLAY_HEIGHT, DISPLAY_WIDTH, HEIGHT, WIDTH,
 };
 use bevy::{
-    core::FixedTimestep,
     diagnostic::{Diagnostic, Diagnostics, FrameTimeDiagnosticsPlugin},
     prelude::*,
     utils::Instant,
@@ -15,8 +14,9 @@ use map::MapBuilder;
 use self::{
     spawner::spawn_player,
     systems::{
-        collisions::collisions, entity_render::entity_render, map_render::map_render,
-        player_input::player_input, random_move::random_move,
+        collisions::collisions, end_turn::end_turn, entity_render::entity_render,
+        map_render::map_render, movement::movement, player_input::player_input,
+        random_move::random_move,
     },
 };
 
@@ -31,16 +31,39 @@ pub struct RustyDungeonPlugin;
 #[derive(Clone, Hash, Debug, PartialEq, Eq, SystemLabel)]
 struct RenderSystem;
 
+const NUM_ROOMS: u32 = 20;
+const MIN_ROOM_SIZE: u32 = 2;
+const MAX_ROOM_SIZE: u32 = 10;
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum TurnState {
+    AwaitingInput,
+    PlayerTurn,
+    MonserTurn,
+}
+
 impl Plugin for RustyDungeonPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_startup_system(startup.system())
+            .add_state(TurnState::AwaitingInput)
             .add_system_set(
-                SystemSet::new()
-                    .with_run_criteria(FixedTimestep::steps_per_second(30.0))
+                SystemSet::on_update(TurnState::AwaitingInput)
                     .before(RenderSystem)
-                    .with_system(player_input.system())
-                    .with_system(random_move.system())
-                    .with_system(collisions.system()),
+                    .with_system(player_input.system()),
+            )
+            .add_system_set(
+                SystemSet::on_update(TurnState::PlayerTurn)
+                    .before(RenderSystem)
+                    .with_system(movement.system().label("movement"))
+                    .with_system(collisions.system().label("collisions").after("movement"))
+                    .with_system(end_turn.system().after("collisions")),
+            )
+            .add_system_set(
+                SystemSet::on_update(TurnState::MonserTurn)
+                    .before(RenderSystem)
+                    .with_system(random_move.system().label("random_move"))
+                    .with_system(movement.system().label("movement").after("random_move"))
+                    .with_system(end_turn.system().after("movement")),
             )
             .add_system_set(
                 SystemSet::new()
@@ -53,10 +76,6 @@ impl Plugin for RustyDungeonPlugin {
             .add_system(clear_screen.system().before(RenderSystem).before(Drawing));
     }
 }
-
-const NUM_ROOMS: u32 = 20;
-const MIN_ROOM_SIZE: u32 = 2;
-const MAX_ROOM_SIZE: u32 = 10;
 
 fn startup(mut commands: Commands) {
     info!("initializing rusty_dungeon...");
