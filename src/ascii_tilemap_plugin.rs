@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use self::settings::AsciiTilemapSettings;
+use self::builders::AsciiTilemapSettings;
 use bevy::{
     asset::AssetPath,
     ecs::system::SystemParam,
@@ -11,9 +11,9 @@ use bevy_ecs_tilemap::{
     Chunk, LayerBuilder, LayerSettings, Map, MapQuery, Tile, TileBundle, TileParent, TilemapPlugin,
 };
 
+pub mod builders;
 pub mod color;
 pub mod geometry;
-pub mod settings;
 
 #[derive(Clone, Hash, Debug, PartialEq, Eq, SystemLabel)]
 pub struct Drawing;
@@ -21,15 +21,15 @@ pub struct Drawing;
 pub struct ActiveLayer(u32);
 
 // TODO support per layer tilesheet
-#[derive(Clone, Copy)]
-pub struct Layer {
+#[derive(Clone)]
+pub struct LayerInfo {
     background_id: u16,
     foreground_id: u16,
     is_transparent: bool,
     is_glyph_background_transparent: bool,
 }
 
-impl Layer {
+impl LayerInfo {
     fn new(layer_id: u8, is_transparent: bool, is_glyph_background_transparent: bool) -> Self {
         let real_layer = u16::from(layer_id * 2);
         Self {
@@ -94,44 +94,56 @@ fn setup(
 
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
 
-    let texture_handle = asset_server.load(settings.tilesheet_asset_path.as_str());
-    let material_handle = materials.add(ColorMaterial::texture(texture_handle));
-
     let map_entity = commands.spawn().id();
     let mut map = Map::new(0_u16, map_entity);
 
-    let layer_settings = LayerSettings::new(
-        UVec2::new(settings.horizontal_chunks, settings.vertical_chunks),
-        UVec2::new(
-            settings.width / settings.horizontal_chunks,
-            settings.height / settings.vertical_chunks,
-        ),
-        Vec2::new(settings.tile_width as f32, settings.tile_height as f32),
-        Vec2::new(
-            (settings.tilesheet_width * settings.tile_width) as f32,
-            (settings.tilesheet_height * settings.tile_height) as f32,
-        ),
+    let map_size = UVec2::new(settings.horizontal_chunks, settings.vertical_chunks);
+    let chunk_size = UVec2::new(
+        settings.width / settings.horizontal_chunks,
+        settings.height / settings.vertical_chunks,
     );
 
-    let mut build_layer = |layer_id| {
+    let mut build_layer = |layer_id, path: &str, tile_dimension: UVec2| {
+        let layer_settings = LayerSettings::new(
+            map_size,
+            chunk_size,
+            tile_dimension.as_f32(),
+            Vec2::new(
+                (settings.tilesheet_width * tile_dimension.x) as f32,
+                (settings.tilesheet_height * tile_dimension.y) as f32,
+            ),
+        );
+
         let (mut layer_builder, layer_entity) =
             LayerBuilder::new(&mut commands, layer_settings, 0_u16, layer_id, None);
         layer_builder.set_all(TileBundle::default());
-        map_query.build_layer(&mut commands, layer_builder, material_handle.clone());
+
+        let texture_handle = asset_server.load(path);
+        let material_handle = materials.add(ColorMaterial::texture(texture_handle));
+
+        map_query.build_layer(&mut commands, layer_builder, material_handle);
         map.add_layer(&mut commands, layer_id, layer_entity);
     };
 
     for layer in &settings.layers {
-        build_layer(layer.background_id);
-        build_layer(layer.foreground_id);
+        build_layer(
+            layer.layer_info.background_id,
+            &layer.tilesheet_path,
+            layer.tile_dimension,
+        );
+        build_layer(
+            layer.layer_info.foreground_id,
+            &layer.tilesheet_path,
+            layer.tile_dimension,
+        );
     }
 
     commands
         .entity(map_entity)
         .insert(map)
         .insert(Transform::from_xyz(
-            -(settings.window_width() / 2.),
-            -(settings.window_height() / 2.),
+            -(settings.window_width / 2.),
+            -(settings.window_height / 2.),
             0.0,
         ))
         .insert(GlobalTransform::default());
@@ -177,13 +189,18 @@ fn process_command_buffer(
             }
             DrawCommand::ClearLayer { layer_id, color } => {
                 let layer_id = layer_id as usize;
-                let layer_setting = settings.layers[get_layer_setting_index(layer_id)];
-                clear_layer(&mut layers[layer_id], layer_id, layer_setting, color);
+                let layer_setting = &settings.layers[get_layer_setting_index(layer_id)];
+                clear_layer(
+                    &mut layers[layer_id],
+                    layer_id,
+                    &layer_setting.layer_info,
+                    color,
+                );
             }
             DrawCommand::ClearAllLayers { color } => {
                 for (layer_id, layer) in layers.iter_mut().enumerate() {
-                    let layer_setting = settings.layers[get_layer_setting_index(layer_id)];
-                    clear_layer(layer, layer_id, layer_setting, color);
+                    let layer_setting = &settings.layers[get_layer_setting_index(layer_id)];
+                    clear_layer(layer, layer_id, &layer_setting.layer_info, color);
                 }
             }
         }
@@ -199,7 +216,12 @@ fn get_layer_setting_index(layer_id: usize) -> usize {
     }
 }
 
-fn clear_layer(layer: &mut Vec<TileInfo>, layer_id: usize, layer_setting: Layer, color: Color) {
+fn clear_layer(
+    layer: &mut Vec<TileInfo>,
+    layer_id: usize,
+    layer_setting: &LayerInfo,
+    color: Color,
+) {
     for mut tile in layer {
         tile.glyph =
             if layer_id == layer_setting.background_id as usize && !layer_setting.is_transparent {
@@ -372,9 +394,11 @@ impl<'a> DrawContext<'a> {
         self.active_layer.0 = u32::from(layer);
     }
 
-    fn get_active_layer(&self) -> Layer {
+    fn get_active_layer(&self) -> LayerInfo {
         puffin::profile_function!();
 
         self.settings.layers[self.active_layer.0 as usize]
+            .layer_info
+            .clone()
     }
 }

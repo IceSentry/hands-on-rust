@@ -1,7 +1,7 @@
 use crate::{
     ascii_tilemap_plugin::{DrawContext, Drawing},
     rusty_dungeon_plugin::spawner::spawn_monster,
-    DISPLAY_HEIGHT, DISPLAY_WIDTH, HEIGHT, WIDTH,
+    LayerId, DISPLAY_HEIGHT, DISPLAY_WIDTH, HEIGHT, WIDTH,
 };
 use bevy::{
     diagnostic::{Diagnostic, Diagnostics, FrameTimeDiagnosticsPlugin},
@@ -118,7 +118,7 @@ fn diagnostic(mut ctx: DrawContext, diagnostics: ResMut<Diagnostics>) {
         .get(FrameTimeDiagnosticsPlugin::FPS)
         .and_then(Diagnostic::value);
     if let Some(fps) = fps {
-        ctx.set_active_layer(2);
+        ctx.set_active_layer(LayerId::Diagnostic as u8);
         ctx.print(0, 0, &format!("FPS {:.0}", fps));
     }
 }

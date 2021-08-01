@@ -10,7 +10,10 @@
     clippy::module_name_repetitions
 )]
 
-use ascii_tilemap_plugin::{settings::AsciiTilemapSettings, AsciiTilemapPlugin};
+use ascii_tilemap_plugin::{
+    builders::{AsciiTilemapSettings, LayerInfoBuilder},
+    AsciiTilemapPlugin,
+};
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
 use bevy_egui::EguiPlugin;
 
@@ -18,39 +21,68 @@ mod ascii_tilemap_plugin;
 mod flappy_plugin;
 mod rusty_dungeon_plugin;
 
-// TODO
-// * find a way to control the window dimension from the plugin or update the tilemap size on resize
-
 pub const WIDTH: u32 = 80;
 pub const HEIGHT: u32 = 50;
 
 pub const DISPLAY_WIDTH: u32 = WIDTH / 2;
 pub const DISPLAY_HEIGHT: u32 = HEIGHT / 2;
 
+pub const WINDOW_WIDTH: f32 = DISPLAY_WIDTH as f32 * TILE_WIDTH as f32;
+pub const WINDOW_HEIGHT: f32 = DISPLAY_HEIGHT as f32 * TILE_HEIGHT as f32;
+
 pub const TILE_WIDTH: u32 = 32;
 pub const TILE_HEIGHT: u32 = 32;
+
+pub enum LayerId {
+    Map = 0,
+    Entities = 1,
+    Hud = 2,
+    Diagnostic = 3,
+}
 
 fn main() {
     let settings = AsciiTilemapSettings::builder()
         // .with_tilesheet_path("16x16-sb-ascii.png")
-        .with_tilesheet_path("dungeonfont.png")
         .with_dimensions(DISPLAY_WIDTH, DISPLAY_HEIGHT)
-        .with_tile_dimensions(TILE_WIDTH, TILE_HEIGHT)
+        .with_window_dimensions(WINDOW_WIDTH, WINDOW_HEIGHT)
         .with_chunks(1, 1)
-        // map
-        .with_layer(0, false, false)
-        // entities
-        .with_layer(1, true, true)
-        // diagnostic
-        .with_layer(2, true, false)
+        .with_layer(
+            LayerInfoBuilder::new(LayerId::Map as u8)
+                .tilesheet_path("dungeonfont.png")
+                .tile_dimension(32, 32)
+                .is_transparent(false)
+                .is_background_transparent(false),
+        )
+        .with_layer(
+            LayerInfoBuilder::new(LayerId::Entities as u8)
+                .tilesheet_path("dungeonfont.png")
+                .tile_dimension(32, 32)
+                .is_transparent(true)
+                .is_background_transparent(true),
+        )
+        .with_layer(
+            LayerInfoBuilder::new(LayerId::Hud as u8)
+                .tilesheet_path("16x16-sb-ascii.png")
+                .tile_dimension(32, 32)
+                .is_transparent(true)
+                .is_background_transparent(false),
+        )
+        .with_layer(
+            LayerInfoBuilder::new(LayerId::Diagnostic as u8)
+                .tilesheet_path("16x16-sb-ascii.png")
+                .tile_dimension(32, 32)
+                .is_transparent(true)
+                .is_background_transparent(false),
+        )
         .build();
 
     App::build()
         .insert_resource(WindowDescriptor {
             // TODO find a way to control this by the plugin
             // if they don't match the map will not be aligned properly
-            width: settings.window_width(),
-            height: settings.window_height(),
+            // or update the tilemap size on resize
+            width: WINDOW_WIDTH,
+            height: WINDOW_HEIGHT,
             title: String::from("hands on dungeon crawler"),
             vsync: false,
             ..Default::default()
