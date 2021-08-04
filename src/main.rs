@@ -21,8 +21,8 @@ mod ascii_tilemap_plugin;
 mod flappy_plugin;
 mod rusty_dungeon_plugin;
 
-pub const WIDTH: u32 = 80;
-pub const HEIGHT: u32 = 50;
+pub const WIDTH: u32 = 20;
+pub const HEIGHT: u32 = 10;
 
 pub const DISPLAY_WIDTH: u32 = WIDTH / 2;
 pub const DISPLAY_HEIGHT: u32 = HEIGHT / 2;
@@ -45,13 +45,10 @@ fn main() {
         // .with_tilesheet_path("16x16-sb-ascii.png")
         .with_dimensions(DISPLAY_WIDTH, DISPLAY_HEIGHT)
         .with_window_dimensions(WINDOW_WIDTH, WINDOW_HEIGHT)
-        .with_chunks(1, 1)
         .with_layer(
             LayerInfoBuilder::new(LayerId::Map as u8)
                 .tilesheet_path("dungeonfont.png")
-                .tile_dimension(32, 32)
-                .is_transparent(false)
-                .is_background_transparent(false),
+                .tile_dimension(32, 32),
         )
         .with_layer(
             LayerInfoBuilder::new(LayerId::Entities as u8)
@@ -63,16 +60,16 @@ fn main() {
         .with_layer(
             LayerInfoBuilder::new(LayerId::Hud as u8)
                 .tilesheet_path("16x16-sb-ascii.png")
-                .tile_dimension(32, 32)
-                .is_transparent(true)
-                .is_background_transparent(false),
+                .tile_dimension(16, 16)
+                .dimension(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2)
+                .is_transparent(true),
         )
         .with_layer(
             LayerInfoBuilder::new(LayerId::Diagnostic as u8)
                 .tilesheet_path("16x16-sb-ascii.png")
-                .tile_dimension(32, 32)
-                .is_transparent(true)
-                .is_background_transparent(false),
+                .tile_dimension(16, 16)
+                .dimension(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2)
+                .is_transparent(false),
         )
         .build();
 

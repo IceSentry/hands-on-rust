@@ -21,22 +21,22 @@ pub struct Drawing;
 pub struct ActiveLayer(u32);
 
 // TODO support per layer tilesheet
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct LayerInfo {
     background_id: u16,
     foreground_id: u16,
     is_transparent: bool,
-    is_glyph_background_transparent: bool,
+    is_background_transparent: bool,
 }
 
 impl LayerInfo {
-    fn new(layer_id: u8, is_transparent: bool, is_glyph_background_transparent: bool) -> Self {
+    fn new(layer_id: u8, is_transparent: bool, is_background_transparent: bool) -> Self {
         let real_layer = u16::from(layer_id * 2);
         Self {
             background_id: real_layer,
             foreground_id: real_layer + 1,
             is_transparent,
-            is_glyph_background_transparent,
+            is_background_transparent,
         }
     }
 }
@@ -45,6 +45,18 @@ impl LayerInfo {
 pub struct TileInfo {
     color: Color,
     glyph: char,
+}
+
+impl TileInfo {
+    pub fn new(color: Color, glyph: char) -> Self {
+        Self { color, glyph }
+    }
+}
+
+impl Default for TileInfo {
+    fn default() -> Self {
+        TileInfo::new(Color::BLACK, 0 as char)
+    }
 }
 
 #[derive(Debug)]
@@ -97,13 +109,13 @@ fn setup(
     let map_entity = commands.spawn().id();
     let mut map = Map::new(0_u16, map_entity);
 
-    let map_size = UVec2::new(settings.horizontal_chunks, settings.vertical_chunks);
-    let chunk_size = UVec2::new(
-        settings.width / settings.horizontal_chunks,
-        settings.height / settings.vertical_chunks,
-    );
+    // always just use 1 chunk per layer since this is always going to be on screen anyway
+    let map_size = UVec2::new(1, 1);
 
-    let mut build_layer = |layer_id, path: &str, tile_dimension: UVec2| {
+    // setup internal map representation
+    let mut layers = Vec::with_capacity(settings.layers.len() * 2);
+
+    let mut build_layer = |layer_id, chunk_size, path: &str, tile_dimension: UVec2| {
         let layer_settings = LayerSettings::new(
             map_size,
             chunk_size,
@@ -126,13 +138,28 @@ fn setup(
     };
 
     for layer in &settings.layers {
+        let chunk_size = layer
+            .dimension
+            .unwrap_or_else(|| UVec2::new(settings.width, settings.height));
+
+        layers.push(vec![
+            TileInfo::default();
+            (chunk_size.x * chunk_size.y) as usize
+        ]);
+        layers.push(vec![
+            TileInfo::default();
+            (chunk_size.x * chunk_size.y) as usize
+        ]);
+
         build_layer(
             layer.layer_info.background_id,
+            chunk_size,
             &layer.tilesheet_path,
             layer.tile_dimension,
         );
         build_layer(
             layer.layer_info.foreground_id,
+            chunk_size,
             &layer.tilesheet_path,
             layer.tile_dimension,
         );
@@ -148,17 +175,6 @@ fn setup(
         ))
         .insert(GlobalTransform::default());
 
-    // setup internal map representation
-    let mut layers = vec![
-        vec![
-            TileInfo {
-                color: Color::BLACK,
-                glyph: ' '
-            };
-            (settings.width * settings.height) as usize
-        ];
-        settings.layers.len() * 2
-    ];
     commands.insert_resource(layers as Layers);
 
     info!(
@@ -183,8 +199,13 @@ fn process_command_buffer(
                 position,
                 tile_info,
             } => {
-                let index = (position.y * settings.width + position.x) as usize;
-                let mut tile = &mut layers[layer_id as usize][index];
+                let layer_id = layer_id as usize;
+                let layer_setting = &settings.layers[get_layer_setting_index(layer_id)];
+                let width = layer_setting
+                    .dimension
+                    .map_or_else(|| settings.width, |dimension| dimension.x);
+                let index = (position.y * width + position.x) as usize;
+                let mut tile = &mut layers[layer_id][index];
                 *tile = tile_info;
             }
             DrawCommand::ClearLayer { layer_id, color } => {
@@ -238,6 +259,7 @@ fn draw(
     mut tile_query: Query<(&mut Tile, &TileParent, &UVec2)>,
     layers: Res<Layers>,
     settings: Res<AsciiTilemapSettings>,
+    mut meshes: ResMut<Assets<Mesh>>,
 ) {
     puffin::profile_function!();
 
@@ -281,7 +303,7 @@ impl<'a> DrawContext<'a> {
         // This makes sure the origin is at the top left of the tilemap
         let position = UVec2::new(x, self.settings.height as u32 - 1 - y);
         let active_layer = self.get_active_layer();
-        if !active_layer.is_glyph_background_transparent {
+        if !active_layer.is_background_transparent {
             self.command_buffer.push(DrawCommand::DrawTile {
                 layer_id: active_layer.background_id,
                 position,
