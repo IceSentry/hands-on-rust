@@ -1,5 +1,5 @@
 use crate::{
-    ascii_tilemap_plugin::{DrawContext, Drawing},
+    ascii_tilemap_plugin::{DrawContext, TilemapDrawing},
     rusty_dungeon_plugin::spawner::spawn_monster,
     LayerId, DISPLAY_HEIGHT, DISPLAY_WIDTH, HEIGHT, WIDTH,
 };
@@ -68,12 +68,17 @@ impl Plugin for RustyDungeonPlugin {
             .add_system_set(
                 SystemSet::new()
                     .label(RenderSystem)
-                    .before(Drawing)
+                    .before(TilemapDrawing)
                     .with_system(map_render.system())
                     .with_system(entity_render.system())
                     .with_system(diagnostic.system()),
             )
-            .add_system(clear_screen.system().before(RenderSystem).before(Drawing));
+            .add_system(
+                clear_screen
+                    .system()
+                    .before(RenderSystem)
+                    .before(TilemapDrawing),
+            );
     }
 }
 
@@ -107,13 +112,11 @@ fn startup(mut commands: Commands) {
 
 fn clear_screen(mut ctx: DrawContext) {
     puffin::profile_function!();
-
     ctx.cls_all_layers();
 }
 
 fn diagnostic(mut ctx: DrawContext, diagnostics: ResMut<Diagnostics>) {
     puffin::profile_function!();
-
     let fps = diagnostics
         .get(FrameTimeDiagnosticsPlugin::FPS)
         .and_then(Diagnostic::value);

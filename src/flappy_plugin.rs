@@ -1,7 +1,7 @@
 use bevy::{app::AppExit, prelude::*};
 
 use crate::{
-    tilemap_plugin::{DrawContext, TilemapDrawing},
+    ascii_tilemap_plugin::{DrawContext, TilemapDrawing},
     HEIGHT, WIDTH,
 };
 
