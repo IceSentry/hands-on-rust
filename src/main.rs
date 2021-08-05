@@ -16,22 +16,26 @@ use ascii_tilemap_plugin::{
 };
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
 use bevy_egui::EguiPlugin;
+use tilemap_plugin::DrawContext;
+
+use crate::tilemap_plugin::{LayerBuilderData, TilemapBuilder, TilemapDrawing, TilemapPlugin};
 
 mod ascii_tilemap_plugin;
 mod flappy_plugin;
 mod rusty_dungeon_plugin;
+mod tilemap_plugin;
 
-pub const WIDTH: u32 = 20;
-pub const HEIGHT: u32 = 10;
+pub const WIDTH: u32 = 80;
+pub const HEIGHT: u32 = 50;
 
-pub const DISPLAY_WIDTH: u32 = WIDTH / 2;
-pub const DISPLAY_HEIGHT: u32 = HEIGHT / 2;
+pub const DISPLAY_WIDTH: u32 = WIDTH;
+pub const DISPLAY_HEIGHT: u32 = HEIGHT;
+
+pub const TILE_WIDTH: u32 = 16;
+pub const TILE_HEIGHT: u32 = 16;
 
 pub const WINDOW_WIDTH: f32 = DISPLAY_WIDTH as f32 * TILE_WIDTH as f32;
 pub const WINDOW_HEIGHT: f32 = DISPLAY_HEIGHT as f32 * TILE_HEIGHT as f32;
-
-pub const TILE_WIDTH: u32 = 32;
-pub const TILE_HEIGHT: u32 = 32;
 
 pub enum LayerId {
     Map = 0,
@@ -41,37 +45,39 @@ pub enum LayerId {
 }
 
 fn main() {
-    let settings = AsciiTilemapSettings::builder()
-        // .with_tilesheet_path("16x16-sb-ascii.png")
-        .with_dimensions(DISPLAY_WIDTH, DISPLAY_HEIGHT)
-        .with_window_dimensions(WINDOW_WIDTH, WINDOW_HEIGHT)
-        .with_layer(
-            LayerInfoBuilder::new(LayerId::Map as u8)
-                .tilesheet_path("dungeonfont.png")
-                .tile_dimension(32, 32),
-        )
-        .with_layer(
-            LayerInfoBuilder::new(LayerId::Entities as u8)
-                .tilesheet_path("dungeonfont.png")
-                .tile_dimension(32, 32)
-                .is_transparent(true)
-                .is_background_transparent(true),
-        )
-        .with_layer(
-            LayerInfoBuilder::new(LayerId::Hud as u8)
-                .tilesheet_path("16x16-sb-ascii.png")
-                .tile_dimension(16, 16)
-                .dimension(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2)
-                .is_transparent(true),
-        )
-        .with_layer(
-            LayerInfoBuilder::new(LayerId::Diagnostic as u8)
-                .tilesheet_path("16x16-sb-ascii.png")
-                .tile_dimension(16, 16)
-                .dimension(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2)
-                .is_transparent(false),
-        )
-        .build();
+    // TODO add fallback options
+    // let settings = AsciiTilemapSettings::builder()
+    //     .with_dimensions(DISPLAY_WIDTH, DISPLAY_HEIGHT)
+    //     .with_window_dimensions(WINDOW_WIDTH, WINDOW_HEIGHT)
+    //     .with_layer(
+    //         LayerInfoBuilder::new(LayerId::Map as u8)
+    //             .tilesheet_path("dungeonfont.png")
+    //             .tile_dimension(32, 32)
+    //             .dimension(DISPLAY_WIDTH, DISPLAY_HEIGHT),
+    //     )
+    //     .with_layer(
+    //         LayerInfoBuilder::new(LayerId::Entities as u8)
+    //             .tilesheet_path("dungeonfont.png")
+    //             .tile_dimension(32, 32)
+    //             .dimension(DISPLAY_WIDTH, DISPLAY_HEIGHT)
+    //             .is_transparent(true)
+    //             .is_background_transparent(true),
+    //     )
+    //     .with_layer(
+    //         LayerInfoBuilder::new(LayerId::Hud as u8)
+    //             .tilesheet_path("16x16-sb-ascii.png")
+    //             .tile_dimension(16, 16)
+    //             .dimension(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2)
+    //             .is_transparent(true),
+    //     )
+    //     .with_layer(
+    //         LayerInfoBuilder::new(LayerId::Diagnostic as u8)
+    //             .tilesheet_path("16x16-sb-ascii.png")
+    //             .tile_dimension(16, 16)
+    //             .dimension(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2)
+    //             .is_transparent(true),
+    //     )
+    //     .build();
 
     App::build()
         .insert_resource(WindowDescriptor {
@@ -84,17 +90,35 @@ fn main() {
             vsync: false,
             ..Default::default()
         })
-        .insert_resource(ClearColor(Color::BLACK))
+        .insert_resource(ClearColor(Color::PINK))
         .add_plugins(DefaultPlugins)
         .add_plugin(EguiPlugin)
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
-        .add_plugin(AsciiTilemapPlugin)
-        .add_system(bevy::input::system::exit_on_esc_system.system())
-        .insert_resource(settings)
-        // .add_plugin(flappy_plugin::FlappyPlugin)
-        .add_plugin(rusty_dungeon_plugin::RustyDungeonPlugin)
         .add_plugin(profiler::ProfilerPlugin)
+        .add_system(bevy::input::system::exit_on_esc_system.system())
+        // .add_plugin(AsciiTilemapPlugin)
+        // .insert_resource(settings)
+        .add_plugin(TilemapPlugin)
+        .insert_resource(TilemapBuilder {
+            layers: vec![LayerBuilderData {
+                id: 0,
+                texture_path: Some("16x16-sb-ascii.png".to_string()),
+                is_background_transparent: false,
+                is_transparent: false,
+                size: Some(UVec2::new(DISPLAY_WIDTH, DISPLAY_HEIGHT)),
+                tile_size: Some(Vec2::new(TILE_WIDTH as f32, TILE_HEIGHT as f32)),
+                tilesheet_size: Some(Vec2::new(16., 16.)),
+            }],
+        })
+        // .add_system(update.system().before(TilemapDrawing))
+        .add_plugin(flappy_plugin::FlappyPlugin)
+        // .add_plugin(rusty_dungeon_plugin::RustyDungeonPlugin)
         .run();
+}
+
+fn update(mut ctx: DrawContext) {
+    ctx.cls();
+    ctx.print(0, 0, "Hello world!");
 }
 
 mod profiler {
@@ -133,7 +157,7 @@ mod profiler {
         keyboard_input: Res<Input<KeyCode>>,
         mut profiler_enabled: ResMut<ProfilerEnabled>,
     ) {
-        if keyboard_input.just_pressed(KeyCode::P) {
+        if keyboard_input.just_pressed(KeyCode::I) {
             profiler_enabled.0 = !profiler_enabled.0;
         }
     }

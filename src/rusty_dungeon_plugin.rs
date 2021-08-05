@@ -32,8 +32,8 @@ pub struct RustyDungeonPlugin;
 struct RenderSystem;
 
 const NUM_ROOMS: u32 = 20;
-const MIN_ROOM_SIZE: u32 = 1;
-const MAX_ROOM_SIZE: u32 = 2;
+const MIN_ROOM_SIZE: u32 = 2;
+const MAX_ROOM_SIZE: u32 = 10;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum TurnState {
@@ -120,40 +120,6 @@ fn diagnostic(mut ctx: DrawContext, diagnostics: ResMut<Diagnostics>) {
     if let Some(fps) = fps {
         ctx.set_active_layer(LayerId::Diagnostic as u8);
         ctx.print(0, 0, &format!("FPS {:.0}", fps));
-        ctx.set(
-            DISPLAY_WIDTH - 1,
-            DISPLAY_HEIGHT - 1,
-            Color::PINK,
-            Color::WHITE,
-            '3',
-        );
-        ctx.set(
-            DISPLAY_WIDTH - 2,
-            DISPLAY_HEIGHT - 1,
-            Color::PINK,
-            Color::WHITE,
-            '2',
-        );
-        ctx.set(
-            DISPLAY_WIDTH - 3,
-            DISPLAY_HEIGHT - 1,
-            Color::PINK,
-            Color::WHITE,
-            '1',
-        );
-        ctx.set(
-            DISPLAY_WIDTH - 1,
-            DISPLAY_HEIGHT - 2,
-            Color::PINK,
-            Color::WHITE,
-            '2',
-        );
-        ctx.set(
-            DISPLAY_WIDTH - 1,
-            DISPLAY_HEIGHT - 3,
-            Color::PINK,
-            Color::WHITE,
-            '1',
-        );
+        ctx.set(WIDTH - 1, HEIGHT - 1, Color::PINK, Color::WHITE, '#');
     }
 }

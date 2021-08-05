@@ -1,7 +1,7 @@
 use bevy::{app::AppExit, prelude::*};
 
 use crate::{
-    ascii_tilemap_plugin::{DrawContext, Drawing},
+    tilemap_plugin::{DrawContext, TilemapDrawing},
     HEIGHT, WIDTH,
 };
 
@@ -18,17 +18,20 @@ impl Plugin for FlappyPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_state(GameState::Menu)
             .add_system_set(
-                SystemSet::on_update(GameState::Menu).with_system(menu.system().before(Drawing)),
+                SystemSet::on_update(GameState::Menu)
+                    .with_system(menu.system().before(TilemapDrawing)),
             )
             .add_system_set(SystemSet::on_exit(GameState::Menu).with_system(clear_input.system()))
             .add_system_set(
-                SystemSet::on_update(GameState::Playing).with_system(play.system().before(Drawing)),
+                SystemSet::on_update(GameState::Playing)
+                    .with_system(play.system().before(TilemapDrawing)),
             )
             .add_system_set(
                 SystemSet::on_exit(GameState::Playing).with_system(clear_input.system()),
             )
             .add_system_set(
-                SystemSet::on_update(GameState::End).with_system(end.system().before(Drawing)),
+                SystemSet::on_update(GameState::End)
+                    .with_system(end.system().before(TilemapDrawing)),
             )
             .add_system_set(SystemSet::on_exit(GameState::End).with_system(clear_input.system()))
             .add_event::<RestartEvent>()
@@ -122,6 +125,7 @@ impl Obstacle {
 }
 
 fn clear_input(mut keyboard_input: ResMut<Input<KeyCode>>) {
+    puffin::profile_function!();
     keyboard_input.update();
 }
 
@@ -132,6 +136,7 @@ fn restart(
     mut obstacle: ResMut<Obstacle>,
     mut score: ResMut<Score>,
 ) {
+    puffin::profile_function!();
     if events.iter().count() == 0 {
         return;
     }
@@ -148,6 +153,7 @@ fn menu(
     mut app_exit_events: EventWriter<AppExit>,
     mut restart_events: EventWriter<RestartEvent>,
 ) {
+    puffin::profile_function!();
     ctx.cls();
     ctx.print_centered(5, "Welcome to Flappy Dragon");
     ctx.print_centered(8, "(P) Play Game");
@@ -170,6 +176,7 @@ fn play(
     mut score: ResMut<Score>,
     keyboard_input: Res<Input<KeyCode>>,
 ) {
+    puffin::profile_function!();
     ctx.cls();
     frame_time.0 += time.delta_seconds();
     if frame_time.0 > FRAME_DURATION {
@@ -203,6 +210,7 @@ fn end(
     mut restart_events: EventWriter<RestartEvent>,
     score: Res<Score>,
 ) {
+    puffin::profile_function!();
     ctx.cls();
     ctx.print_centered(5, "You are dead");
     ctx.print_centered(6, &format!("You earned {} points", score.0));
