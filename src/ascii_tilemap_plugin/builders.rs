@@ -96,7 +96,6 @@ pub struct LayerInfoBuilder {
     pub tilesheet_path: String,
     pub tile_dimension: UVec2,
     pub layer_info: LayerInfo,
-    pub dimension: Option<UVec2>,
 }
 
 impl LayerInfoBuilder {
@@ -105,8 +104,7 @@ impl LayerInfoBuilder {
         Self {
             tilesheet_path: "".to_string(),
             tile_dimension: UVec2::default(),
-            layer_info: LayerInfo::new(layer_id, false, false),
-            dimension: None,
+            layer_info: LayerInfo::new(layer_id, false, false, UVec2::default()),
         }
     }
 
@@ -131,7 +129,7 @@ impl LayerInfoBuilder {
     }
 
     pub fn dimension(&mut self, width: u32, height: u32) -> &mut Self {
-        self.dimension = Some(UVec2::new(width, height));
+        self.layer_info.dimension = UVec2::new(width, height);
         self
     }
 }

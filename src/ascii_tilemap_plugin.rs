@@ -27,16 +27,23 @@ pub struct LayerInfo {
     foreground_id: u16,
     is_transparent: bool,
     is_background_transparent: bool,
+    dimension: UVec2,
 }
 
 impl LayerInfo {
-    fn new(layer_id: u8, is_transparent: bool, is_background_transparent: bool) -> Self {
+    fn new(
+        layer_id: u8,
+        is_transparent: bool,
+        is_background_transparent: bool,
+        dimension: UVec2,
+    ) -> Self {
         let real_layer = u16::from(layer_id * 2);
         Self {
             background_id: real_layer,
             foreground_id: real_layer + 1,
             is_transparent,
             is_background_transparent,
+            dimension,
         }
     }
 }
@@ -138,9 +145,7 @@ fn setup(
     };
 
     for layer in &settings.layers {
-        let chunk_size = layer
-            .dimension
-            .unwrap_or_else(|| UVec2::new(settings.width, settings.height));
+        let chunk_size = layer.layer_info.dimension;
 
         layers.push(vec![
             TileInfo::default();
@@ -192,6 +197,7 @@ fn process_command_buffer(
 
     // Use an internal representation of the map to do all the operations.
     // Once it's done, send the end result to the tilemap
+    // TODO use a command_buffer per layer and parallelize it
     for command in command_buffer.iter() {
         match *command {
             DrawCommand::DrawTile {
@@ -199,16 +205,16 @@ fn process_command_buffer(
                 position,
                 tile_info,
             } => {
+                puffin::profile_scope!("DrawTile");
                 let layer_id = layer_id as usize;
                 let layer_setting = &settings.layers[get_layer_setting_index(layer_id)];
-                let width = layer_setting
-                    .dimension
-                    .map_or_else(|| settings.width, |dimension| dimension.x);
-                let index = (position.y * width + position.x) as usize;
+                let width = layer_setting.layer_info.dimension.x;
+                let index = ((position.y * width) + position.x) as usize;
                 let mut tile = &mut layers[layer_id][index];
                 *tile = tile_info;
             }
             DrawCommand::ClearLayer { layer_id, color } => {
+                puffin::profile_scope!("ClearLayer");
                 let layer_id = layer_id as usize;
                 let layer_setting = &settings.layers[get_layer_setting_index(layer_id)];
                 clear_layer(
@@ -219,6 +225,7 @@ fn process_command_buffer(
                 );
             }
             DrawCommand::ClearAllLayers { color } => {
+                puffin::profile_scope!("ClearAllLayers");
                 for (layer_id, layer) in layers.iter_mut().enumerate() {
                     let layer_setting = &settings.layers[get_layer_setting_index(layer_id)];
                     clear_layer(layer, layer_id, &layer_setting.layer_info, color);
@@ -230,6 +237,7 @@ fn process_command_buffer(
 }
 
 fn get_layer_setting_index(layer_id: usize) -> usize {
+    puffin::profile_function!();
     if layer_id % 2 == 0 {
         layer_id / 2
     } else {
@@ -259,14 +267,17 @@ fn draw(
     mut tile_query: Query<(&mut Tile, &TileParent, &UVec2)>,
     layers: Res<Layers>,
     settings: Res<AsciiTilemapSettings>,
-    mut meshes: ResMut<Assets<Mesh>>,
 ) {
     puffin::profile_function!();
 
     let mut chunks = HashSet::default();
     tile_query.for_each_mut(|(mut tile, tile_parent, pos)| {
-        let index = (pos.y * settings.width + pos.x) as usize;
-        let tile_info = layers[tile_parent.layer_id as usize][index];
+        let layer_id = tile_parent.layer_id as usize;
+        let layer_setting = &settings.layers[get_layer_setting_index(layer_id)];
+        let width = layer_setting.layer_info.dimension.x;
+
+        let index = (pos.y * width + pos.x) as usize;
+        let tile_info = layers[layer_id][index];
 
         if tile.texture_index != tile_info.glyph as u16 || tile.color != tile_info.color {
             tile.texture_index = tile_info.glyph as u16;
@@ -295,14 +306,18 @@ impl<'a> DrawContext<'a> {
     pub fn set(&mut self, x: u32, y: u32, background: Color, foreground: Color, glyph: char) {
         puffin::profile_function!();
 
-        if x >= self.settings.width || y >= self.settings.height {
+        let active_layer = self.get_active_layer();
+        let layer_setting =
+            &self.settings.layers[get_layer_setting_index(active_layer.background_id as usize)];
+        let dimension = layer_setting.layer_info.dimension;
+
+        if x >= dimension.x || y >= dimension.y {
             // ignores anything out of bounds
             return;
         }
 
         // This makes sure the origin is at the top left of the tilemap
-        let position = UVec2::new(x, self.settings.height as u32 - 1 - y);
-        let active_layer = self.get_active_layer();
+        let position = UVec2::new(x, dimension.y as u32 - y - 1);
         if !active_layer.is_background_transparent {
             self.command_buffer.push(DrawCommand::DrawTile {
                 layer_id: active_layer.background_id,
