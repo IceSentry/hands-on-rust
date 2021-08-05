@@ -208,7 +208,7 @@ fn setup_tiles(
             chunk: tile_parent.chunk,
         });
     });
-    info!("LayerData added to tiles");
+    info!("TileData added to tiles");
 }
 
 fn process_command_buffer(layers: Query<&mut Layer>, mut render_layers: ResMut<RenderLayers>) {
@@ -237,14 +237,14 @@ fn process_command_buffer(layers: Query<&mut Layer>, mut render_layers: ResMut<R
                 DrawCommand::ClearLayer { color } => {
                     for mut tile in &mut render_layers[layer.background_id as usize] {
                         tile.glyph = if layer.is_transparent {
-                            0 as char // foreground and transparent backgrounds should be invisible after clear
+                            0 // foreground and transparent backgrounds should be invisible after clear
                         } else {
-                            219 as char // ASCII code 219 = █ ( Block, graphic character )
+                            219 // ASCII code 219 = █ ( Block, graphic character )
                         };
                         tile.color = color;
                     }
                     for mut tile in &mut render_layers[layer.foreground_id as usize] {
-                        tile.glyph = 0 as char;
+                        tile.glyph = 0_u16;
                         tile.color = color;
                     }
                 }

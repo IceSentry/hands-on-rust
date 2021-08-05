@@ -7,11 +7,14 @@ pub type RenderLayers = Vec<Vec<TileRenderData>>;
 #[derive(Debug, Clone, Copy)]
 pub struct TileRenderData {
     pub color: Color,
-    pub glyph: char,
+    pub glyph: u16,
 }
 impl TileRenderData {
     pub fn new(color: Color, glyph: char) -> Self {
-        Self { color, glyph }
+        Self {
+            color,
+            glyph: glyph as u16,
+        }
     }
 }
 impl Default for TileRenderData {
@@ -27,14 +30,12 @@ pub fn render(
 ) {
     puffin::profile_function!();
     let mut chunks = HashSet::default();
-
+    // using the precomputed data didn't help :(
     tile_query.for_each_mut(|(mut tile, tile_data)| {
-        // puffin::profile_scope!("tile_query");
         let tile_render_data = &render_layers[tile_data.layer_id][tile_data.index];
         if tile.texture_index != tile_render_data.glyph as u16
             || tile.color != tile_render_data.color
         {
-            // puffin::profile_scope!("update tile");
             tile.texture_index = tile_render_data.glyph as u16;
             tile.color = tile_render_data.color;
             chunks.insert(tile_data.chunk);
