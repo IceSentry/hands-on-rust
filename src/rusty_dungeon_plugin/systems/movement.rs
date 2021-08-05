@@ -14,7 +14,6 @@ pub fn movement(
     mut camera: ResMut<Camera>,
 ) {
     puffin::profile_function!();
-
     query.for_each_mut(|(entity, wants_to_move)| {
         if map.can_enter_tile(wants_to_move.destination) {
             commands

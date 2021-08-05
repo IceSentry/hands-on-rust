@@ -22,8 +22,6 @@ impl Camera {
         }
     }
     pub fn on_player_move(&mut self, player_position: UVec2) {
-        puffin::profile_function!();
-
         self.left_x = player_position.x.saturating_sub(self.display_width / 2);
         self.right_x = player_position.x.saturating_add(self.display_width / 2);
         self.top_y = player_position.y.saturating_sub(self.display_height / 2);

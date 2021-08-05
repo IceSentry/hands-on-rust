@@ -10,7 +10,7 @@
     clippy::module_name_repetitions
 )]
 
-use ascii_tilemap_plugin::{AsciiTilemapPlugin, DrawContext};
+use ascii_tilemap_plugin::AsciiTilemapPlugin;
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
 use bevy_egui::EguiPlugin;
 
@@ -83,7 +83,7 @@ fn main() {
                     texture_path: Some("16x16-sb-ascii.png".to_string()),
                     is_background_transparent: false,
                     is_transparent: true,
-                    size: Some(UVec2::new(DISPLAY_WIDTH, DISPLAY_HEIGHT)),
+                    size: Some(UVec2::new(0, 0)),
                     tile_size: Some(Vec2::new(16., 16.)),
                     tilesheet_size: Some(Vec2::new(16., 16.)),
                 },

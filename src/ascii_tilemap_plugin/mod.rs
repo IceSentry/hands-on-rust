@@ -1,12 +1,17 @@
-use bevy::{ecs::system::SystemParam, prelude::*};
-use bevy_ecs_tilemap::{Map, MapQuery};
+use bevy::prelude::*;
+use bevy_ecs_tilemap::{Map, MapQuery, TileParent};
 
-use crate::ascii_tilemap_plugin::render::TileRenderData;
+use self::{
+    draw_context::ActiveLayer,
+    render::{RenderLayers, TileRenderData},
+};
 
-use self::render::RenderLayers;
+pub use draw_context::DrawContext;
 
 pub mod color;
+pub mod draw_context;
 pub mod geometry;
+mod render;
 
 #[derive(Clone, Hash, Debug, PartialEq, Eq, SystemLabel)]
 pub struct TilemapDrawing;
@@ -23,12 +28,11 @@ impl Plugin for AsciiTilemapPlugin {
                     .with_system(render::render.system().label("render")),
             )
             .add_startup_system(setup.system())
+            .add_startup_stage("tile_setup", SystemStage::parallel())
+            .add_startup_system_to_stage("tile_setup", setup_tiles.system())
             .insert_resource(ActiveLayer(0));
     }
 }
-
-#[derive(Debug, Clone)]
-pub struct ActiveLayer(u16);
 
 pub type LayerEntities = Vec<Entity>;
 
@@ -122,7 +126,9 @@ fn setup(
     };
 
     for layer_builder_data in &tilemap_builder.layers {
-        let chunk_size = layer_builder_data.size.expect("size not set");
+        let layer_data = layer_builder_data.build();
+
+        let chunk_size = layer_data.size;
         let tile_size = layer_builder_data.tile_size.expect("tile_size not set");
         let tilesheet_size = layer_builder_data
             .tilesheet_size
@@ -141,20 +147,15 @@ fn setup(
         let texture_handle = asset_server.load(path.as_str());
         let material_handle = materials.add(ColorMaterial::texture(texture_handle));
         build_layer(
-            layer_builder_data.id * 2,
+            layer_data.background_id,
             layer_settings,
             material_handle.clone(),
         );
-        build_layer(
-            layer_builder_data.id * 2 + 1,
-            layer_settings,
-            material_handle,
-        );
+        build_layer(layer_data.foreground_id, layer_settings, material_handle);
     }
     for (id, l) in render_layers.iter().enumerate() {
         info!("layer_id: {} len: {}", id, l.len());
     }
-
     commands.insert_resource(render_layers as RenderLayers);
 
     let mut layer_entities = vec![];
@@ -180,6 +181,34 @@ fn setup(
         .insert(map)
         .insert(Transform::from_xyz(-window_size.x, -window_size.y, 0.0))
         .insert(GlobalTransform::default());
+}
+
+pub struct TileData {
+    pub index: usize,
+    pub layer_id: usize,
+    pub chunk: Entity,
+}
+
+fn setup_tiles(
+    mut commands: Commands,
+    tile_query: Query<(Entity, &TileParent, &UVec2)>,
+    layers: Query<&Layer>,
+) {
+    tile_query.for_each(|(entity, tile_parent, pos)| {
+        let layer = layers
+            .iter()
+            .find(|l| {
+                l.background_id == tile_parent.layer_id || l.foreground_id == tile_parent.layer_id
+            })
+            .expect("layer not found");
+        let index = (pos.y * layer.size.x + pos.x) as usize;
+        commands.entity(entity).insert(TileData {
+            index,
+            layer_id: tile_parent.layer_id as usize,
+            chunk: tile_parent.chunk,
+        });
+    });
+    info!("LayerData added to tiles");
 }
 
 fn process_command_buffer(layers: Query<&mut Layer>, mut render_layers: ResMut<RenderLayers>) {
@@ -223,188 +252,4 @@ fn process_command_buffer(layers: Query<&mut Layer>, mut render_layers: ResMut<R
         }
         layer.command_buffer.clear();
     });
-}
-
-#[derive(SystemParam)]
-pub struct DrawContext<'a> {
-    layers: Query<'a, &'static mut Layer>,
-    active_layer: ResMut<'a, ActiveLayer>,
-    layer_entities: Res<'a, LayerEntities>,
-}
-
-impl<'a> DrawContext<'a> {
-    pub fn set(&mut self, x: u32, y: u32, background: Color, foreground: Color, glyph: char) {
-        puffin::profile_function!();
-        let entity = self.layer_entities[self.active_layer.0 as usize];
-        if let Ok(mut layer) = self.layers.get_mut(entity) {
-            if x >= layer.size.x || y >= layer.size.y {
-                // ignores anything out of bounds
-                return;
-            }
-
-            layer.command_buffer.push(DrawCommand::DrawTile {
-                x,
-                y,
-                background,
-                foreground,
-                glyph,
-            });
-        }
-    }
-
-    /// Prints a string at the given position with foreground and background color
-    /// if the string is longer than the viewport it will get truncated, wrapping is not handled
-    pub fn print_color(
-        &mut self,
-        x: u32,
-        y: u32,
-        background: Color,
-        foreground: Color,
-        text: &str,
-    ) {
-        puffin::profile_function!();
-        for (i, char) in text.chars().enumerate() {
-            self.set(x + i as u32, y, background, foreground, char);
-        }
-    }
-
-    /// prints a string centered on the x axis with foreground and background color
-    pub fn print_color_centered(
-        &mut self,
-        y: u32,
-        background: Color,
-        foreground: Color,
-        text: &str,
-    ) {
-        puffin::profile_function!();
-        let size = self.get_active_layer_size();
-        self.print_color(
-            (size.x / 2) - (text.to_string().len() as u32 / 2),
-            y,
-            background,
-            foreground,
-            text,
-        );
-    }
-
-    /// Prints a string at the given position
-    /// if the string is longer than the viewport it will get truncated, wrapping is not handled
-    pub fn print(&mut self, x: u32, y: u32, text: &str) {
-        puffin::profile_function!();
-        self.print_color(x, y, Color::BLACK, Color::WHITE, text);
-    }
-
-    /// prints a string centered on the x axis
-    pub fn print_centered(&mut self, y: u32, text: &str) {
-        puffin::profile_function!();
-        self.print_color_centered(y, Color::BLACK, Color::WHITE, text);
-    }
-
-    /// Clears the active layer
-    pub fn cls(&mut self) {
-        self.cls_color(Color::BLACK);
-    }
-
-    /// Clears the active layer with a specific color
-    pub fn cls_color(&mut self, color: Color) {
-        puffin::profile_function!();
-        let entity = self.layer_entities[self.active_layer.0 as usize];
-        if let Ok(mut layer) = self.layers.get_mut(entity) {
-            layer.command_buffer.push(DrawCommand::ClearLayer { color });
-        }
-    }
-
-    pub fn cls_all_layers(&mut self) {
-        self.cls_color_all_layers(Color::BLACK);
-    }
-
-    pub fn cls_color_all_layers(&mut self, color: Color) {
-        puffin::profile_function!();
-        self.layers.for_each_mut(|mut layer| {
-            layer.command_buffer.push(DrawCommand::ClearLayer { color });
-        });
-    }
-
-    pub fn set_active_layer(&mut self, layer: u8) {
-        puffin::profile_function!();
-        self.active_layer.0 = u16::from(layer);
-    }
-
-    pub fn get_active_layer_size(&mut self) -> UVec2 {
-        puffin::profile_function!();
-        let entity = self.layer_entities[self.active_layer.0 as usize];
-        let layer = self.layers.get_mut(entity).expect("layer not found");
-        layer.size
-    }
-}
-
-mod render {
-    use super::Layer;
-    use bevy::{prelude::*, utils::HashSet};
-    use bevy_ecs_tilemap::{Chunk, Tile, TileParent};
-
-    pub type RenderLayers = Vec<Vec<TileRenderData>>;
-
-    #[derive(Debug, Clone, Copy)]
-    pub struct TileRenderData {
-        pub color: Color,
-        pub glyph: char,
-    }
-    impl TileRenderData {
-        pub fn new(color: Color, glyph: char) -> Self {
-            Self { color, glyph }
-        }
-    }
-    impl Default for TileRenderData {
-        fn default() -> Self {
-            Self::new(Color::BLACK, 0 as char)
-        }
-    }
-
-    pub fn render(
-        mut chunk_query: Query<&mut Chunk>,
-        tile_query: Query<(&mut Tile, &TileParent, &UVec2)>,
-        render_layers: Res<RenderLayers>,
-        layers_query: Query<&mut Layer>,
-    ) {
-        puffin::profile_function!();
-        let mut chunks = HashSet::default();
-        layers_query.for_each_mut(|layer| {
-            puffin::profile_scope!("layers_query");
-            let width = layer.size.x;
-            let background_layer = &render_layers[layer.background_id as usize];
-            let foreground_layer = &render_layers[layer.foreground_id as usize];
-
-            tile_query.for_each_mut(|(mut tile, tile_parent, pos)| {
-                puffin::profile_scope!("tile_query");
-                let layer_id = tile_parent.layer_id;
-                if layer_id == layer.background_id || layer_id == layer.foreground_id {
-                    let index = (pos.y * width + pos.x) as usize;
-                    let tile_data = if layer_id == layer.background_id {
-                        background_layer[index]
-                    } else {
-                        *foreground_layer.get(index).unwrap_or_else(|| {
-                            panic!(
-                                "failed to get tile at layer_id {} {} {} {} {}",
-                                layer_id, layer.foreground_id, index, width, pos
-                            )
-                        })
-                    };
-
-                    if tile.texture_index != tile_data.glyph as u16 || tile.color != tile_data.color
-                    {
-                        tile.texture_index = tile_data.glyph as u16;
-                        tile.color = tile_data.color;
-                        chunks.insert(tile_parent.chunk);
-                    }
-                }
-            });
-        });
-
-        for chunk_entity in chunks.drain() {
-            if let Ok(mut chunk) = chunk_query.get_mut(chunk_entity) {
-                chunk.needs_remesh = true;
-            }
-        }
-    }
 }

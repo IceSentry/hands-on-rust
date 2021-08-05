@@ -4,7 +4,6 @@ use crate::rusty_dungeon_plugin::components::{MovingRandomly, WantsToMove};
 
 pub fn random_move(mut commands: Commands, query: Query<(Entity, &UVec2), With<MovingRandomly>>) {
     puffin::profile_function!();
-
     query.for_each_mut(|(entity, pos)| {
         let rng = fastrand::Rng::new();
         let destination = match rng.u8(0..4) {
