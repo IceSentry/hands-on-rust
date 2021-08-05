@@ -41,11 +41,12 @@ pub fn render(
             chunks.insert(tile_data.chunk);
         }
     });
-
-    for chunk_entity in chunks.drain() {
-        if let Ok(mut chunk) = chunk_query.get_mut(chunk_entity) {
-            puffin::profile_scope!("chunk need remesh");
-            chunk.needs_remesh = true;
+    {
+        puffin::profile_scope!("chunk needs remesh", chunks.len().to_string());
+        for chunk_entity in chunks.drain() {
+            if let Ok(mut chunk) = chunk_query.get_mut(chunk_entity) {
+                chunk.needs_remesh = true;
+            }
         }
     }
 }

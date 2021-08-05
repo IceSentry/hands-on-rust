@@ -18,6 +18,7 @@ use crate::ascii_tilemap_plugin::{LayerBuilderData, TilemapBuilder};
 
 mod ascii_tilemap_plugin;
 mod flappy_plugin;
+mod profiler_plugin;
 mod rusty_dungeon_plugin;
 
 pub const WIDTH: u32 = 80;
@@ -55,7 +56,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(EguiPlugin)
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
-        .add_plugin(profiler::ProfilerPlugin)
+        .add_plugin(profiler_plugin::ProfilerPlugin)
         .add_system(bevy::input::system::exit_on_esc_system.system())
         .add_plugin(AsciiTilemapPlugin)
         .insert_resource(TilemapBuilder {
@@ -101,46 +102,4 @@ fn main() {
         // .add_plugin(flappy_plugin::FlappyPlugin)
         .add_plugin(rusty_dungeon_plugin::RustyDungeonPlugin)
         .run();
-}
-
-mod profiler {
-    use bevy::prelude::*;
-    use bevy_egui::EguiContext;
-
-    struct ProfilerEnabled(bool);
-
-    pub struct ProfilerPlugin;
-
-    impl Plugin for ProfilerPlugin {
-        fn build(&self, app: &mut AppBuilder) {
-            app.add_system_to_stage(bevy::app::CoreStage::First, new_frame.system())
-                .add_system(profiler_ui.system())
-                .add_system(keyboard.system())
-                .insert_resource(ProfilerEnabled(false));
-        }
-    }
-
-    fn new_frame(profiler_enabled: Res<ProfilerEnabled>) {
-        puffin::set_scopes_on(profiler_enabled.0);
-        puffin::GlobalProfiler::lock().new_frame();
-    }
-
-    fn profiler_ui(egui_context: Res<EguiContext>, profiler_enabled: Res<ProfilerEnabled>) {
-        puffin::profile_function!();
-
-        if profiler_enabled.0 {
-            bevy_egui::egui::Window::new("Profiler")
-                .default_size([800., 500.])
-                .show(egui_context.ctx(), |ui| puffin_egui::profiler_ui(ui));
-        }
-    }
-
-    fn keyboard(
-        keyboard_input: Res<Input<KeyCode>>,
-        mut profiler_enabled: ResMut<ProfilerEnabled>,
-    ) {
-        if keyboard_input.just_pressed(KeyCode::I) {
-            profiler_enabled.0 = !profiler_enabled.0;
-        }
-    }
 }
