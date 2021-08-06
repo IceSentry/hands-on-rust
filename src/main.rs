@@ -49,7 +49,7 @@ fn main() {
             width: WINDOW_WIDTH,
             height: WINDOW_HEIGHT,
             title: String::from("hands on dungeon crawler"),
-            vsync: false,
+            // vsync: false,
             ..Default::default()
         })
         .insert_resource(ClearColor(Color::PINK))
@@ -91,7 +91,7 @@ fn main() {
                 LayerBuilderData {
                     id: LayerId::Diagnostic as u16,
                     texture_path: Some("16x16-sb-ascii.png".to_string()),
-                    is_background_transparent: false,
+                    is_background_transparent: true,
                     is_transparent: true,
                     size: Some(UVec2::new(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2)),
                     tile_size: Some(Vec2::new(16., 16.)),

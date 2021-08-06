@@ -4,7 +4,7 @@ use bevy_ecs_tilemap::{Chunk, Tile};
 
 pub type RenderLayers = Vec<Vec<TileRenderData>>;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TileRenderData {
     pub color: Color,
     pub glyph: u16,

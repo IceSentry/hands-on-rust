@@ -1,5 +1,5 @@
-use bevy::prelude::*;
-use bevy_ecs_tilemap::{Map, MapQuery, TileParent};
+use bevy::{prelude::*, render::camera::ScalingMode, utils::HashSet};
+use bevy_ecs_tilemap::{Map, MapQuery, Tile, TileParent};
 
 use self::{
     draw_context::ActiveLayer,
@@ -97,7 +97,10 @@ fn setup(
     mut map_query: MapQuery,
     tilemap_builder: Res<TilemapBuilder>,
 ) {
-    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+    let mut camera_bundle = OrthographicCameraBundle::new_2d();
+    camera_bundle.orthographic_projection.scaling_mode = ScalingMode::FixedVertical;
+    camera_bundle.orthographic_projection.scale = 400.;
+    commands.spawn_bundle(camera_bundle);
 
     let map_entity = commands.spawn().id();
     let mut map = Map::new(0_u16, map_entity);
@@ -118,11 +121,12 @@ fn setup(
         map_query.build_layer(&mut commands, layer_builder, material_handle);
         map.add_layer(&mut commands, layer_id, layer_entity);
 
-        render_layers.push(vec![
+        let render_layer = vec![
             TileRenderData::default();
-            (layer_settings.chunk_size.x * layer_settings.chunk_size.y)
-                as usize
-        ]);
+            (layer_settings.chunk_size.x * layer_settings.chunk_size.y) as usize
+        ];
+        info!("layer_id: {} len: {}", layer_id, render_layer.len());
+        render_layers.push(render_layer);
     };
 
     for layer_builder_data in &tilemap_builder.layers {
@@ -146,15 +150,23 @@ fn setup(
 
         let texture_handle = asset_server.load(path.as_str());
         let material_handle = materials.add(ColorMaterial::texture(texture_handle));
-        build_layer(
-            layer_data.background_id,
-            layer_settings,
-            material_handle.clone(),
-        );
+        if layer_data.is_background_transparent {
+            let mut layer_settings = layer_settings;
+            // this should help iteration speed since we don't need to iterate as many tiles
+            layer_settings.chunk_size = UVec2::ZERO;
+            build_layer(
+                layer_data.background_id,
+                layer_settings,
+                material_handle.clone(),
+            );
+        } else {
+            build_layer(
+                layer_data.background_id,
+                layer_settings,
+                material_handle.clone(),
+            );
+        }
         build_layer(layer_data.foreground_id, layer_settings, material_handle);
-    }
-    for (id, l) in render_layers.iter().enumerate() {
-        info!("layer_id: {} len: {}", id, l.len());
     }
     commands.insert_resource(render_layers as RenderLayers);
 
@@ -252,4 +264,20 @@ fn process_command_buffer(layers: Query<&mut Layer>, mut render_layers: ResMut<R
         }
         layer.command_buffer.clear();
     });
+}
+
+// This assumes a single map with a single chunk per layer
+fn get_tile_entity(
+    map_query: &Query<&bevy_ecs_tilemap::Map>,
+    layer_query: &Query<&bevy_ecs_tilemap::Layer>,
+    chunk_query: &Query<&bevy_ecs_tilemap::Chunk>,
+    tile_pos: UVec2,
+    layer_id: u16,
+) -> Option<Entity> {
+    let map = map_query.single().expect("map not found");
+    map.get_layer_entity(layer_id)
+        .and_then(|layer_entity| layer_query.get(*layer_entity).ok())
+        .and_then(|layer| layer.get_chunk(UVec2::ZERO))
+        .and_then(|chunk_entity| chunk_query.get(chunk_entity).ok())
+        .and_then(|chunk| chunk.get_tile_entity(chunk.to_chunk_pos(tile_pos)))
 }
