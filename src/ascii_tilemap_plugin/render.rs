@@ -30,7 +30,6 @@ pub fn render(
 ) {
     puffin::profile_function!();
     let mut chunks = HashSet::default();
-    // using the precomputed data didn't help :(
     tile_query.for_each_mut(|(mut tile, tile_data)| {
         let tile_render_data = &render_layers[tile_data.layer_id][tile_data.index];
         if tile.texture_index != tile_render_data.glyph as u16
@@ -42,7 +41,7 @@ pub fn render(
         }
     });
     {
-        puffin::profile_scope!("chunk needs remesh", chunks.len().to_string());
+        puffin::profile_scope!("chunk needs remesh");
         for chunk_entity in chunks.drain() {
             if let Ok(mut chunk) = chunk_query.get_mut(chunk_entity) {
                 chunk.needs_remesh = true;

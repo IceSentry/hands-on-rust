@@ -1,13 +1,15 @@
-use bevy::{prelude::*, render::camera::ScalingMode, utils::HashSet};
-use bevy_ecs_tilemap::{Map, MapQuery, Tile, TileParent};
+use bevy::{prelude::*, render::camera::ScalingMode};
+use bevy_ecs_tilemap::{Map, MapQuery, TileParent};
 
 use self::{
     draw_context::ActiveLayer,
     render::{RenderLayers, TileRenderData},
 };
 
+pub use builder::{LayerDataBuilder, TilemapBuilder};
 pub use draw_context::DrawContext;
 
+mod builder;
 pub mod color;
 pub mod draw_context;
 pub mod geometry;
@@ -60,36 +62,6 @@ enum DrawCommand {
     },
 }
 
-#[derive(Debug, Clone)]
-pub struct TilemapBuilder {
-    pub layers: Vec<LayerBuilderData>,
-}
-
-#[derive(Debug, Clone)]
-pub struct LayerBuilderData {
-    pub texture_path: Option<String>,
-    pub size: Option<UVec2>,
-    pub tile_size: Option<Vec2>,
-    /// WARN dimension in tiles
-    pub tilesheet_size: Option<Vec2>,
-    pub id: u16,
-    pub is_transparent: bool,
-    pub is_background_transparent: bool,
-}
-
-impl LayerBuilderData {
-    fn build(&self) -> Layer {
-        Layer {
-            background_id: self.id * 2,
-            foreground_id: self.id * 2 + 1,
-            command_buffer: vec![],
-            size: self.size.expect("layer.size not set"),
-            is_background_transparent: self.is_background_transparent,
-            is_transparent: self.is_transparent,
-        }
-    }
-}
-
 fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -130,7 +102,7 @@ fn setup(
     };
 
     for layer_builder_data in &tilemap_builder.layers {
-        let layer_data = layer_builder_data.build();
+        let layer_data = layer_builder_data.build_layer();
 
         let chunk_size = layer_data.size;
         let tile_size = layer_builder_data.tile_size.expect("tile_size not set");
@@ -172,9 +144,10 @@ fn setup(
 
     let mut layer_entities = vec![];
     for layer_builder_data in &tilemap_builder.layers {
-        // because of borrow checker can't do this in the other loop
-        let layer_data = layer_builder_data.build();
+        let layer_data = layer_builder_data.build_layer();
         info!("layer_data {:?}", layer_data);
+        // because of borrow checker can't do this in the other loop
+        // can't borrow commands
         let entity = commands.spawn().insert(layer_data).id();
         layer_entities.push(entity);
     }
@@ -267,7 +240,7 @@ fn process_command_buffer(layers: Query<&mut Layer>, mut render_layers: ResMut<R
 }
 
 // This assumes a single map with a single chunk per layer
-fn get_tile_entity(
+fn _get_tile_entity(
     map_query: &Query<&bevy_ecs_tilemap::Map>,
     layer_query: &Query<&bevy_ecs_tilemap::Layer>,
     chunk_query: &Query<&bevy_ecs_tilemap::Chunk>,

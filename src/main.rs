@@ -14,7 +14,7 @@ use ascii_tilemap_plugin::AsciiTilemapPlugin;
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
 use bevy_egui::EguiPlugin;
 
-use crate::ascii_tilemap_plugin::{LayerBuilderData, TilemapBuilder};
+use crate::ascii_tilemap_plugin::{LayerDataBuilder, TilemapBuilder};
 
 mod ascii_tilemap_plugin;
 mod flappy_plugin;
@@ -49,7 +49,7 @@ fn main() {
             width: WINDOW_WIDTH,
             height: WINDOW_HEIGHT,
             title: String::from("hands on dungeon crawler"),
-            // vsync: false,
+            vsync: false,
             ..Default::default()
         })
         .insert_resource(ClearColor(Color::PINK))
@@ -59,46 +59,68 @@ fn main() {
         .add_plugin(profiler_plugin::ProfilerPlugin)
         .add_system(bevy::input::system::exit_on_esc_system.system())
         .add_plugin(AsciiTilemapPlugin)
-        .insert_resource(TilemapBuilder {
-            layers: vec![
-                LayerBuilderData {
-                    id: LayerId::Map as u16,
-                    texture_path: Some("dungeonfont.png".to_string()),
-                    is_background_transparent: false,
-                    is_transparent: false,
-                    size: Some(UVec2::new(DISPLAY_WIDTH, DISPLAY_HEIGHT)),
-                    tile_size: Some(Vec2::new(TILE_WIDTH as f32, TILE_HEIGHT as f32)),
-                    tilesheet_size: Some(Vec2::new(16., 16.)),
-                },
-                LayerBuilderData {
-                    id: LayerId::Entities as u16,
-                    texture_path: Some("dungeonfont.png".to_string()),
-                    is_background_transparent: true,
-                    is_transparent: true,
-                    size: Some(UVec2::new(DISPLAY_WIDTH, DISPLAY_HEIGHT)),
-                    tile_size: Some(Vec2::new(TILE_WIDTH as f32, TILE_HEIGHT as f32)),
-                    tilesheet_size: Some(Vec2::new(16., 16.)),
-                },
-                LayerBuilderData {
-                    id: LayerId::Hud as u16,
-                    texture_path: Some("16x16-sb-ascii.png".to_string()),
-                    is_background_transparent: false,
-                    is_transparent: true,
-                    size: Some(UVec2::new(0, 0)),
-                    tile_size: Some(Vec2::new(16., 16.)),
-                    tilesheet_size: Some(Vec2::new(16., 16.)),
-                },
-                LayerBuilderData {
-                    id: LayerId::Diagnostic as u16,
-                    texture_path: Some("16x16-sb-ascii.png".to_string()),
-                    is_background_transparent: true,
-                    is_transparent: true,
-                    size: Some(UVec2::new(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2)),
-                    tile_size: Some(Vec2::new(16., 16.)),
-                    tilesheet_size: Some(Vec2::new(16., 16.)),
-                },
-            ],
-        })
+        .insert_resource(
+            TilemapBuilder::new()
+                .with_layer(
+                    LayerDataBuilder::new(LayerId::Map as u16)
+                        .texture_path("dungeonfont.png")
+                        .size(DISPLAY_WIDTH, DISPLAY_HEIGHT)
+                        .tile_size(TILE_WIDTH as f32, TILE_HEIGHT as f32),
+                )
+                .with_layer(
+                    LayerDataBuilder::new(LayerId::Entities as u16)
+                        .texture_path("dungeonfont.png")
+                        .size(DISPLAY_WIDTH, DISPLAY_HEIGHT)
+                        .tile_size(TILE_WIDTH as f32, TILE_HEIGHT as f32)
+                        .is_transparent(true)
+                        .is_background_transparent(true),
+                )
+                .with_layer(
+                    LayerDataBuilder::new(LayerId::Hud as u16)
+                        .texture_path("16x16-sb-ascii.png")
+                        .size(0, 0)
+                        .tile_size(16., 16.)
+                        .is_transparent(true),
+                )
+                .with_layer(
+                    LayerDataBuilder::new(LayerId::Diagnostic as u16)
+                        .texture_path("16x16-sb-ascii.png")
+                        .size(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2)
+                        .tile_size(16., 16.)
+                        .is_transparent(true)
+                        .is_background_transparent(true),
+                )
+                .build(),
+        )
+        // .insert_resource(TilemapBuilder {
+        //     layers: vec![
+        //         LayerDataBuilder::new(LayerId::Map as u16)
+        //             .texture_path("dungeonfont.png")
+        //             .size(DISPLAY_WIDTH, DISPLAY_HEIGHT)
+        //             .tile_size(TILE_WIDTH as f32, TILE_HEIGHT as f32)
+        //             .build(),
+        //         LayerDataBuilder::new(LayerId::Entities as u16)
+        //             .texture_path("dungeonfont.png")
+        //             .size(DISPLAY_WIDTH, DISPLAY_HEIGHT)
+        //             .tile_size(TILE_WIDTH as f32, TILE_HEIGHT as f32)
+        //             .is_transparent(true)
+        //             .is_background_transparent(true)
+        //             .build(),
+        //         LayerDataBuilder::new(LayerId::Hud as u16)
+        //             .texture_path("16x16-sb-ascii.png")
+        //             .size(0, 0)
+        //             .tile_size(16., 16.)
+        //             .is_transparent(true)
+        //             .build(),
+        //         LayerDataBuilder::new(LayerId::Diagnostic as u16)
+        //             .texture_path("16x16-sb-ascii.png")
+        //             .size(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2)
+        //             .tile_size(16., 16.)
+        //             .is_transparent(true)
+        //             .is_background_transparent(true)
+        //             .build(),
+        //     ],
+        // })
         // .add_plugin(flappy_plugin::FlappyPlugin)
         .add_plugin(rusty_dungeon_plugin::RustyDungeonPlugin)
         .run();

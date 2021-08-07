@@ -36,6 +36,7 @@ impl Rect {
     }
 
     /// Returns true if a point is inside the Rect
+    #[allow(unused)]
     pub fn point_in_rect(&self, point: UVec2) -> bool {
         point.x >= self.x_left
             && point.x < self.x_right
