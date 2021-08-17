@@ -41,8 +41,6 @@ pub enum LayerId {
 }
 
 fn main() {
-    println!("hello github");
-    
     App::build()
         .insert_resource(WindowDescriptor {
             // TODO find a way to control this by the plugin
