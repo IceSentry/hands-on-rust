@@ -77,6 +77,27 @@ impl<'a> DrawContext<'a> {
         self.print_color_centered(y, Color::BLACK, Color::WHITE, text);
     }
 
+    pub fn bar_horizontal(
+        &mut self,
+        start_x: u32,
+        start_y: u32,
+        width: u32,
+        filled_amount: u32,
+        max: u32,
+        background: Color,
+        foreground: Color,
+    ) {
+        let percent = filled_amount as f32 / max as f32;
+        let fill_width = (percent * width as f32) as u32;
+        for x in 0..width {
+            if x <= fill_width {
+                self.set(start_x + x, start_y, background, foreground, 219 as char);
+            } else {
+                self.set(start_x + x, start_y, background, foreground, '░');
+            }
+        }
+    }
+
     /// Clears the active layer
     pub fn cls(&mut self) {
         self.cls_color(Color::BLACK);
