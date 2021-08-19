@@ -49,7 +49,7 @@ fn main() {
             width: WINDOW_WIDTH,
             height: WINDOW_HEIGHT,
             title: String::from("hands on dungeon crawler"),
-            vsync: false,
+            // vsync: false,
             ..Default::default()
         })
         .insert_resource(ClearColor(Color::PINK))
@@ -78,9 +78,10 @@ fn main() {
                 .with_layer(
                     LayerDataBuilder::new(LayerId::Hud as u16)
                         .texture_path("16x16-sb-ascii.png")
-                        .size(0, 0)
-                        .tile_size(16., 16.)
-                        .is_transparent(true),
+                        .size(WIDTH * 2, HEIGHT * 2)
+                        .tile_size(8., 8.)
+                        .is_transparent(true)
+                        .is_background_transparent(true),
                 )
                 .with_layer(
                     LayerDataBuilder::new(LayerId::Diagnostic as u16)
@@ -92,35 +93,6 @@ fn main() {
                 )
                 .build(),
         )
-        // .insert_resource(TilemapBuilder {
-        //     layers: vec![
-        //         LayerDataBuilder::new(LayerId::Map as u16)
-        //             .texture_path("dungeonfont.png")
-        //             .size(DISPLAY_WIDTH, DISPLAY_HEIGHT)
-        //             .tile_size(TILE_WIDTH as f32, TILE_HEIGHT as f32)
-        //             .build(),
-        //         LayerDataBuilder::new(LayerId::Entities as u16)
-        //             .texture_path("dungeonfont.png")
-        //             .size(DISPLAY_WIDTH, DISPLAY_HEIGHT)
-        //             .tile_size(TILE_WIDTH as f32, TILE_HEIGHT as f32)
-        //             .is_transparent(true)
-        //             .is_background_transparent(true)
-        //             .build(),
-        //         LayerDataBuilder::new(LayerId::Hud as u16)
-        //             .texture_path("16x16-sb-ascii.png")
-        //             .size(0, 0)
-        //             .tile_size(16., 16.)
-        //             .is_transparent(true)
-        //             .build(),
-        //         LayerDataBuilder::new(LayerId::Diagnostic as u16)
-        //             .texture_path("16x16-sb-ascii.png")
-        //             .size(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2)
-        //             .tile_size(16., 16.)
-        //             .is_transparent(true)
-        //             .is_background_transparent(true)
-        //             .build(),
-        //     ],
-        // })
         // .add_plugin(flappy_plugin::FlappyPlugin)
         .add_plugin(rusty_dungeon_plugin::RustyDungeonPlugin)
         .run();
