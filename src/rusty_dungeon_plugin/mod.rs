@@ -1,7 +1,7 @@
 use crate::{
     ascii_tilemap_plugin::{DrawContext, TilemapDrawing},
     rusty_dungeon_plugin::spawner::spawn_monster,
-    LayerId, DISPLAY_HEIGHT, DISPLAY_WIDTH, HEIGHT, WIDTH,
+    LayerId, DISPLAY_HEIGHT, DISPLAY_WIDTH, HEIGHT, TILE_HEIGHT, TILE_WIDTH, WIDTH,
 };
 use bevy::{
     diagnostic::{Diagnostic, Diagnostics, FrameTimeDiagnosticsPlugin},
@@ -14,9 +14,9 @@ use map::MapBuilder;
 use self::{
     spawner::spawn_player,
     systems::{
-        collisions::collisions, end_turn::end_turn, entity_render::entity_render,
+        collisions::collisions, end_turn::end_turn, entity_render::entity_render, hud::hud,
         map_render::map_render, movement::movement, player_input::player_input,
-        random_move::random_move,
+        random_move::random_move, tooltips::tooltips,
     },
 };
 
@@ -25,8 +25,6 @@ mod components;
 mod map;
 mod spawner;
 mod systems;
-
-pub struct RustyDungeonPlugin;
 
 #[derive(Clone, Hash, Debug, PartialEq, Eq, SystemLabel)]
 struct RenderSystem;
@@ -41,7 +39,9 @@ pub enum TurnState {
     PlayerTurn,
     MonserTurn,
 }
+pub struct CursorPos(pub Option<UVec2>);
 
+pub struct RustyDungeonPlugin;
 impl Plugin for RustyDungeonPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_startup_system(startup.system())
@@ -49,7 +49,8 @@ impl Plugin for RustyDungeonPlugin {
             .add_system_set(
                 SystemSet::on_update(TurnState::AwaitingInput)
                     .before(RenderSystem)
-                    .with_system(player_input.system()),
+                    .with_system(player_input.system())
+                    .with_system(tooltips.system()),
             )
             .add_system_set(
                 SystemSet::on_update(TurnState::PlayerTurn)
@@ -69,6 +70,7 @@ impl Plugin for RustyDungeonPlugin {
                 SystemSet::new()
                     .label(RenderSystem)
                     .before(TilemapDrawing)
+                    .with_system(hud.system())
                     .with_system(map_render.system())
                     .with_system(entity_render.system())
                     .with_system(diagnostic.system()),
@@ -78,7 +80,9 @@ impl Plugin for RustyDungeonPlugin {
                     .system()
                     .before(RenderSystem)
                     .before(TilemapDrawing),
-            );
+            )
+            // TODO make sure this runs at the beginning
+            .add_system(update_cursor.system());
     }
 }
 
@@ -101,6 +105,7 @@ fn startup(mut commands: Commands) {
 
     commands.insert_resource(map);
     commands.insert_resource(Camera::new(player_start, DISPLAY_WIDTH, DISPLAY_HEIGHT));
+    commands.insert_resource(CursorPos(None));
 
     spawn_player(&mut commands, player_start);
     for pos in rooms.iter().skip(1).map(|r| r.center()) {
@@ -115,7 +120,20 @@ fn clear_screen(mut ctx: DrawContext) {
     ctx.cls_all_layers();
 }
 
-fn diagnostic(mut ctx: DrawContext, diagnostics: ResMut<Diagnostics>) {
+fn update_cursor(mut cursor_pos: ResMut<CursorPos>, windows: Res<Windows>) {
+    cursor_pos.0 = windows
+        .get_primary()
+        .and_then(Window::cursor_position)
+        .map(|cursor_position| {
+            UVec2::new(
+                // TODO use size from layer 0
+                (cursor_position.x / (TILE_WIDTH as f32)).floor() as u32,
+                DISPLAY_HEIGHT - 1 - (cursor_position.y / (TILE_HEIGHT as f32)).floor() as u32,
+            )
+        });
+}
+
+fn diagnostic(mut ctx: DrawContext, diagnostics: Res<Diagnostics>) {
     puffin::profile_function!();
     let fps = diagnostics
         .get(FrameTimeDiagnosticsPlugin::FPS)
