@@ -21,6 +21,7 @@ pub fn tooltips(
         Some(cursor_pos) => cursor_pos,
         _ => return,
     };
+    puffin::profile_function!();
     ctx.set_active_layer(LayerId::Hud as u8);
 
     let offset = UVec2::new(camera.left_x, camera.top_y);
@@ -32,6 +33,7 @@ pub fn tooltips(
         } else {
             name.0.clone()
         };
+        // TODO move tooltip rendering to a different system
         ctx.print(screen_pos.x, screen_pos.y, &display);
     }
 }

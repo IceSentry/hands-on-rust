@@ -49,8 +49,7 @@ impl Plugin for RustyDungeonPlugin {
             .add_system_set(
                 SystemSet::on_update(TurnState::AwaitingInput)
                     .before(RenderSystem)
-                    .with_system(player_input.system())
-                    .with_system(tooltips.system()),
+                    .with_system(player_input.system()),
             )
             .add_system_set(
                 SystemSet::on_update(TurnState::PlayerTurn)
@@ -71,6 +70,7 @@ impl Plugin for RustyDungeonPlugin {
                     .label(RenderSystem)
                     .before(TilemapDrawing)
                     .with_system(hud.system())
+                    .with_system(tooltips.system())
                     .with_system(map_render.system())
                     .with_system(entity_render.system())
                     .with_system(diagnostic.system()),
@@ -135,12 +135,11 @@ fn update_cursor(mut cursor_pos: ResMut<CursorPos>, windows: Res<Windows>) {
 
 fn diagnostic(mut ctx: DrawContext, diagnostics: Res<Diagnostics>) {
     puffin::profile_function!();
-    let fps = diagnostics
+    if let Some(fps) = diagnostics
         .get(FrameTimeDiagnosticsPlugin::FPS)
-        .and_then(Diagnostic::value);
-    if let Some(fps) = fps {
+        .and_then(Diagnostic::value)
+    {
         ctx.set_active_layer(LayerId::Diagnostic as u8);
         ctx.print(0, 0, &format!("FPS {:.0}", fps));
-        ctx.set(WIDTH - 1, HEIGHT - 1, Color::PINK, Color::WHITE, '#');
     }
 }

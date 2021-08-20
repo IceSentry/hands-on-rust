@@ -19,4 +19,10 @@ pub fn hud(mut ctx: DrawContext, query: Query<&Health, With<Player>>) {
         Color::BLACK,
         Color::RED,
     );
+    ctx.print_color_centered(
+        0,
+        Color::RED,
+        Color::WHITE,
+        &format!("Health: {} / {}", health.current, health.max),
+    );
 }

@@ -81,7 +81,7 @@ fn main() {
                         .size(WIDTH * 2, HEIGHT * 2)
                         .tile_size(8., 8.)
                         .is_transparent(true)
-                        .is_background_transparent(true),
+                        .is_background_transparent(false),
                 )
                 .with_layer(
                     LayerDataBuilder::new(LayerId::Diagnostic as u16)
