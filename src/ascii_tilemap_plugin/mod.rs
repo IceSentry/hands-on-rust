@@ -97,7 +97,7 @@ fn setup(
             TileRenderData::default();
             (layer_settings.chunk_size.x * layer_settings.chunk_size.y) as usize
         ];
-        info!("layer_id: {} len: {}", layer_id, render_layer.len());
+        // info!("layer_id: {} len: {}", layer_id, render_layer.len());
         render_layers.push(render_layer);
     };
 
@@ -145,7 +145,7 @@ fn setup(
     let mut layer_entities = vec![];
     for layer_builder_data in &tilemap_builder.layers {
         let layer_data = layer_builder_data.build_layer();
-        info!("layer_data {:?}", layer_data);
+        // info!("layer_data {:?}", layer_data);
         // because of borrow checker can't do this in the other loop
         // can't borrow commands
         let entity = commands.spawn().insert(layer_data).id();
@@ -193,7 +193,7 @@ fn setup_tiles(
             chunk: tile_parent.chunk,
         });
     });
-    info!("TileData added to tiles");
+    // info!("TileData added to tiles");
 }
 
 fn process_command_buffer(layers: Query<&mut Layer>, mut render_layers: ResMut<RenderLayers>) {
