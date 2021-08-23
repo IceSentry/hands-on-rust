@@ -13,7 +13,7 @@ pub fn hud(mut ctx: DrawContext, query: Query<&Health, With<Player>>) {
     ctx.bar_horizontal(
         0,
         0,
-        WIDTH * 2,
+        WIDTH,
         health.current as u32,
         health.max as u32,
         Color::BLACK,

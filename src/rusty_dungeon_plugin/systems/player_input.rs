@@ -12,7 +12,6 @@ pub fn player_input(
     mut keyboard_input_events: EventReader<KeyboardInput>,
 ) {
     puffin::profile_function!();
-    debug!("player_input");
     // Only process the first event
     if let Some(event) = keyboard_input_events.iter().find(|x| x.state.is_pressed()) {
         let delta = match event.key_code {
