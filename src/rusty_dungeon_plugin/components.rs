@@ -29,3 +29,8 @@ pub struct Health {
 
 #[derive(Debug)]
 pub struct Name(pub String);
+
+pub struct WantsToAttack {
+    pub attacker: Entity,
+    pub victim: Entity,
+}

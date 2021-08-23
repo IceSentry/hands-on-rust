@@ -1,4 +1,4 @@
-pub mod collisions;
+pub mod combat;
 pub mod end_turn;
 pub mod entity_render;
 pub mod hud;

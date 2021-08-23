@@ -10,6 +10,9 @@ pub fn entity_render(mut ctx: DrawContext, camera: Res<Camera>, query: Query<(&U
     ctx.set_active_layer(LayerId::Entities as u8);
     let offset = UVec2::new(camera.left_x, camera.top_y);
     query.for_each(|(position, render)| {
+        if position.x < offset.x || position.y < offset.y {
+            return;
+        }
         let draw_pos = *position - offset;
         ctx.set(
             draw_pos.x,

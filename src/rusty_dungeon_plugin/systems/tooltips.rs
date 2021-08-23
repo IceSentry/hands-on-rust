@@ -27,13 +27,12 @@ pub fn tooltips(
     let offset = UVec2::new(camera.left_x, camera.top_y);
     let map_pos = cursor_position + offset;
     for (entity, _, name) in query.iter().filter(|(_, pos, _)| **pos == map_pos) {
-        let screen_pos = cursor_position * 4;
+        let screen_pos = cursor_position * 2;
         let display = if let Ok(health) = health_query.get(entity) {
             format!("{} : {} hp", name.0, health.current)
         } else {
             name.0.clone()
         };
-        // TODO move tooltip rendering to a different system
         ctx.print(screen_pos.x, screen_pos.y, &display);
     }
 }

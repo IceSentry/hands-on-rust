@@ -45,5 +45,5 @@ fn goblin() -> (i32, String, char) {
 }
 
 fn orc() -> (i32, String, char) {
-    (2, "Goblin".to_string(), 'o')
+    (2, "Orc".to_string(), 'o')
 }

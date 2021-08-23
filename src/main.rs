@@ -78,8 +78,8 @@ fn main() {
                 .with_layer(
                     LayerDataBuilder::new(LayerId::Hud as u16)
                         .texture_path("16x16-sb-ascii.png")
-                        .size(WIDTH * 2, HEIGHT * 2)
-                        .tile_size(8., 8.)
+                        .size(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2)
+                        .tile_size(16., 16.)
                         .is_transparent(true)
                         .is_background_transparent(false),
                 )
