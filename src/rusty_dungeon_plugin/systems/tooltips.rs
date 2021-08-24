@@ -24,9 +24,9 @@ pub fn tooltips(
     puffin::profile_function!();
     ctx.set_active_layer(LayerId::Hud as u8);
 
-    let offset = UVec2::new(camera.left_x, camera.top_y);
-    let map_pos = cursor_position + offset;
-    for (entity, _, name) in query.iter().filter(|(_, pos, _)| **pos == map_pos) {
+    let offset = IVec2::new(camera.left_x, camera.top_y);
+    let map_pos = cursor_position.as_i32() + offset;
+    for (entity, _, name) in query.iter().filter(|(_, pos, _)| **pos == map_pos.as_u32()) {
         let screen_pos = cursor_position * 2;
         let display = if let Ok(health) = health_query.get(entity) {
             format!("{} : {} hp", name.0, health.current)

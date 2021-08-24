@@ -13,13 +13,13 @@ pub fn map_render(mut ctx: DrawContext, map: Res<Map>, camera: Res<Camera>) {
     ctx.set_active_layer(LayerId::Map as u8);
     for y in camera.top_y..=camera.bottom_y {
         for x in camera.left_x..camera.right_x {
-            let pos = UVec2::new(x, y);
-            if let Some(tile_type) = map.get_tile(pos) {
+            let pos = IVec2::new(x, y);
+            if let Some(tile_type) = map.get_tile(pos.as_u32()) {
                 let glyph = match tile_type {
                     TileType::Wall => '#',
                     TileType::Floor => '.',
                 };
-                let pos_offset = pos - UVec2::new(camera.left_x, camera.top_y);
+                let pos_offset = (pos - IVec2::new(camera.left_x, camera.top_y)).as_u32();
                 ctx.set(
                     pos_offset.x,
                     pos_offset.y,

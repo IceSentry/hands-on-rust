@@ -43,7 +43,6 @@ pub struct CursorPos(pub Option<UVec2>);
 enum Stage {
     BeforeCombat,
     Combat,
-    Movement,
     EndTurn,
 }
 
@@ -54,13 +53,11 @@ impl Plugin for RustyDungeonPlugin {
             // Setup stages
             .add_stage(Stage::Combat, SystemStage::parallel())
             .add_stage_before(Stage::Combat, Stage::BeforeCombat, SystemStage::parallel())
-            .add_stage_after(Stage::Combat, Stage::Movement, SystemStage::parallel())
-            .add_stage_after(Stage::Movement, Stage::EndTurn, SystemStage::parallel())
+            .add_stage_after(Stage::Combat, Stage::EndTurn, SystemStage::parallel())
             // TurnState
             .insert_resource(State::new(TurnState::AwaitingInput))
             .add_system_set_to_stage(Stage::BeforeCombat, State::<TurnState>::get_driver())
             .add_system_set_to_stage(Stage::Combat, State::<TurnState>::get_driver())
-            .add_system_set_to_stage(Stage::Movement, State::<TurnState>::get_driver())
             .add_system_set_to_stage(Stage::EndTurn, State::<TurnState>::get_driver())
             // AwaitingInput
             .add_system_set_to_stage(
@@ -70,11 +67,9 @@ impl Plugin for RustyDungeonPlugin {
             // PlayerTurn
             .add_system_set_to_stage(
                 Stage::Combat,
-                SystemSet::on_update(TurnState::PlayerTurn).with_system(combat.system()),
-            )
-            .add_system_set_to_stage(
-                Stage::Movement,
-                SystemSet::on_update(TurnState::PlayerTurn).with_system(movement.system()),
+                SystemSet::on_update(TurnState::PlayerTurn)
+                    .with_system(combat.system())
+                    .with_system(movement.system()),
             )
             // MonsterTurn
             .add_system_set_to_stage(
@@ -83,11 +78,9 @@ impl Plugin for RustyDungeonPlugin {
             )
             .add_system_set_to_stage(
                 Stage::Combat,
-                SystemSet::on_update(TurnState::MonserTurn).with_system(combat.system()),
-            )
-            .add_system_set_to_stage(
-                Stage::Movement,
-                SystemSet::on_update(TurnState::MonserTurn).with_system(movement.system()),
+                SystemSet::on_update(TurnState::MonserTurn)
+                    .with_system(combat.system())
+                    .with_system(movement.system()),
             )
             // EndTurn
             .add_system_set_to_stage(
@@ -124,7 +117,12 @@ fn startup(mut commands: Commands) {
     .expect("failed to build the map");
 
     commands.insert_resource(map);
-    commands.insert_resource(Camera::new(player_start, DISPLAY_WIDTH, DISPLAY_HEIGHT));
+    #[allow(clippy::cast_possible_wrap)]
+    commands.insert_resource(Camera::new(
+        player_start.as_i32(),
+        DISPLAY_WIDTH as i32,
+        DISPLAY_HEIGHT as i32,
+    ));
     commands.insert_resource(CursorPos(None));
 
     spawn_player(&mut commands, player_start);

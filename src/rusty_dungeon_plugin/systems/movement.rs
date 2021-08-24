@@ -20,7 +20,7 @@ pub fn movement(
                 .entity(wants_to_move.entity)
                 .insert(wants_to_move.destination);
             if player_query.get(wants_to_move.entity).is_ok() {
-                camera.on_player_move(wants_to_move.destination);
+                camera.on_player_move(wants_to_move.destination.as_i32());
             }
         }
         commands.entity(entity).despawn();
