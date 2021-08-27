@@ -40,6 +40,12 @@ pub enum LayerId {
     Diagnostic = 3,
 }
 
+impl From<LayerId> for u16 {
+    fn from(val: LayerId) -> Self {
+        val as u16
+    }
+}
+
 fn main() {
     App::build()
         .insert_resource(WindowDescriptor {
@@ -62,13 +68,13 @@ fn main() {
         .insert_resource(
             TilemapBuilder::new()
                 .with_layer(
-                    LayerDataBuilder::new(LayerId::Map as u16)
+                    LayerDataBuilder::new(LayerId::Map)
                         .texture_path("dungeonfont.png")
                         .size(DISPLAY_WIDTH, DISPLAY_HEIGHT)
                         .tile_size(TILE_WIDTH as f32, TILE_HEIGHT as f32),
                 )
                 .with_layer(
-                    LayerDataBuilder::new(LayerId::Entities as u16)
+                    LayerDataBuilder::new(LayerId::Entities)
                         .texture_path("dungeonfont.png")
                         .size(DISPLAY_WIDTH, DISPLAY_HEIGHT)
                         .tile_size(TILE_WIDTH as f32, TILE_HEIGHT as f32)
@@ -76,7 +82,7 @@ fn main() {
                         .is_background_transparent(true),
                 )
                 .with_layer(
-                    LayerDataBuilder::new(LayerId::Hud as u16)
+                    LayerDataBuilder::new(LayerId::Hud)
                         .texture_path("16x16-sb-ascii.png")
                         .size(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2)
                         .tile_size(16., 16.)
@@ -84,7 +90,7 @@ fn main() {
                         .is_background_transparent(false),
                 )
                 .with_layer(
-                    LayerDataBuilder::new(LayerId::Diagnostic as u16)
+                    LayerDataBuilder::new(LayerId::Diagnostic)
                         .texture_path("16x16-sb-ascii.png")
                         .size(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2)
                         .tile_size(16., 16.)

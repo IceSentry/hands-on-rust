@@ -34,13 +34,13 @@ pub struct LayerDataBuilder {
 }
 
 impl LayerDataBuilder {
-    pub fn new(id: u16) -> Self {
+    pub fn new<I: Into<u16>>(id: I) -> Self {
         Self {
             texture_path: None,
             size: None,
             tile_size: None,
             tilesheet_size: Some(Vec2::new(16., 16.)),
-            id,
+            id: id.into(),
             is_transparent: false,
             is_background_transparent: false,
         }
