@@ -1,5 +1,5 @@
 use crate::rusty_dungeon_plugin::{
-    components::{Enemy, Player, WantsToAttack, WantsToMove},
+    components::{Enemy, Health, Player, WantsToAttack, WantsToMove},
     TurnState,
 };
 use bevy::{input::keyboard::KeyboardInput, prelude::*};
@@ -8,6 +8,7 @@ pub fn player_input(
     mut commands: Commands,
     player_query: Query<(Entity, &UVec2), With<Player>>,
     enemy_query: Query<(Entity, &UVec2), With<Enemy>>,
+    mut player_health_query: Query<&mut Health, With<Player>>,
     mut turn_state: ResMut<State<TurnState>>,
     mut keyboard_input_events: EventReader<KeyboardInput>,
 ) {
@@ -24,16 +25,32 @@ pub fn player_input(
 
         player_query.for_each_mut(|(player, position)| {
             let destination = (position.as_f32() + delta).as_u32();
-            if let Some((enemy, _)) = enemy_query.iter().find(|(_, pos)| **pos == destination) {
-                commands.spawn().insert(WantsToAttack {
-                    attacker: player,
-                    victim: enemy,
-                });
-            } else {
-                commands.spawn().insert(WantsToMove {
-                    entity: player,
-                    destination,
-                });
+            let mut did_something = false;
+            if delta.x != 0. || delta.y != 0. {
+                let mut hit_something = false;
+                for (enemy, _) in enemy_query.iter().filter(|(_, pos)| **pos == destination) {
+                    hit_something = true;
+                    did_something = true;
+                    commands.spawn().insert(WantsToAttack {
+                        attacker: player,
+                        victim: enemy,
+                    });
+                }
+
+                if !hit_something {
+                    did_something = true;
+                    commands.spawn().insert(WantsToMove {
+                        entity: player,
+                        destination,
+                    });
+                }
+            }
+
+            if !did_something {
+                match player_health_query.get_mut(player) {
+                    Ok(mut health) => health.current = i32::min(health.max, health.current + 1),
+                    Err(e) => warn!("Failed to update health {}", e),
+                };
             }
         });
 
