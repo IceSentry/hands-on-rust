@@ -1,12 +1,18 @@
-use bevy::{prelude::*, render::camera::ScalingMode};
-use bevy_ecs_tilemap::{
-    ChunkPos, ChunkSize, LayerSettings, Map, MapQuery, MapSize, TextureSize, TileParent, TilePos,
-    TileSize,
-};
+#![warn(clippy::pedantic)]
+#![allow(
+    clippy::needless_pass_by_value,
+    clippy::default_trait_access,
+    clippy::module_name_repetitions
+)]
 
 use self::{
     draw_context::ActiveLayer,
     render::{RenderLayers, TileRenderData},
+};
+use bevy::{prelude::*, render::camera::ScalingMode};
+use bevy_ecs_tilemap::{
+    ChunkPos, ChunkSize, LayerSettings, Map, MapQuery, MapSize, TextureSize, TileParent, TilePos,
+    TileSize,
 };
 
 pub use builder::{LayerDataBuilder, TilemapBuilder};

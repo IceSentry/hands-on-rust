@@ -1,5 +1,5 @@
 use super::components::{Enemy, Health, MovingRandomly, Name, Player, Render};
-use crate::ascii_tilemap_plugin::color::GlyphColor;
+use ascii_tilemap_plugin::color::GlyphColor;
 use bevy::prelude::*;
 use fastrand::Rng;
 

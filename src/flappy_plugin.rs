@@ -1,9 +1,7 @@
 use bevy::{app::AppExit, prelude::*};
 
-use crate::{
-    ascii_tilemap_plugin::{DrawContext, TilemapDrawing},
-    HEIGHT, WIDTH,
-};
+use crate::{HEIGHT, WIDTH};
+use ascii_tilemap_plugin::{DrawContext, TilemapDrawing};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 enum GameState {
@@ -71,6 +69,8 @@ impl Player {
     }
 
     #[allow(clippy::cast_sign_loss)]
+    #[allow(clippy::cast_precision_loss)]
+    #[allow(clippy::cast_possible_truncation)]
     fn gravity_and_move(&mut self) {
         if self.velocity < 2. {
             self.velocity += 0.3;
@@ -166,6 +166,7 @@ fn menu(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn play(
     mut state: ResMut<State<GameState>>,
     time: Res<Time>,

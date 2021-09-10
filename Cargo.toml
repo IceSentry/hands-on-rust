@@ -5,18 +5,18 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[workspace]
+members = ["ascii_tilemap_plugin"]
+
 [dependencies]
+ascii_tilemap_plugin = { path = "ascii_tilemap_plugin" }
 bevy = { version = "0.5.0", default-features = false, features = [
-    "bevy_winit",
-    "bevy_wgpu",
-    "render",
-    "png",
     "dynamic",
+    "png",
 ] }
-bevy_ecs_tilemap = { git = "https://github.com/StarArawn/bevy_ecs_tilemap.git/" }
 fastrand = "1.5.0"
 ntest = "0.7.3"
 anyhow = "1.0.43"
 bevy_egui = "0.7.0"
-puffin = "0.8.1"
 puffin_egui = "0.7.0"
+puffin = "0.8.1"

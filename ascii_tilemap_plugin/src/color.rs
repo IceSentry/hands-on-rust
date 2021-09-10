@@ -14,6 +14,7 @@ impl Default for GlyphColor {
 }
 
 impl GlyphColor {
+    #[must_use]
     pub fn new(background: Color, foreground: Color) -> Self {
         Self {
             background,
@@ -21,6 +22,7 @@ impl GlyphColor {
         }
     }
 
+    #[must_use]
     pub fn foreground(foreground: Color) -> Self {
         Self {
             foreground,

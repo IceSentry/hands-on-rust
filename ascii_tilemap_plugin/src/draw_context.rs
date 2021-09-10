@@ -1,4 +1,4 @@
-use crate::ascii_tilemap_plugin::DrawCommand;
+use crate::DrawCommand;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 
@@ -35,6 +35,7 @@ impl<'a> DrawContext<'a> {
 
     /// Prints a string at the given position with foreground and background color
     /// if the string is longer than the viewport it will get truncated, wrapping is not handled
+    #[allow(clippy::cast_possible_truncation)]
     pub fn print_color(
         &mut self,
         x: u32,
@@ -49,6 +50,7 @@ impl<'a> DrawContext<'a> {
     }
 
     /// prints a string centered on the x axis with foreground and background color
+    #[allow(clippy::cast_possible_truncation)]
     pub fn print_color_centered(
         &mut self,
         y: u32,
@@ -77,6 +79,10 @@ impl<'a> DrawContext<'a> {
         self.print_color_centered(y, Color::BLACK, Color::WHITE, text);
     }
 
+    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::cast_sign_loss)]
+    #[allow(clippy::cast_precision_loss)]
+    #[allow(clippy::cast_possible_truncation)]
     pub fn bar_horizontal(
         &mut self,
         start_x: u32,

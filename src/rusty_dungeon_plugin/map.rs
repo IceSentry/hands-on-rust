@@ -1,4 +1,4 @@
-use crate::{ascii_tilemap_plugin, HEIGHT, WIDTH};
+use crate::{HEIGHT, WIDTH};
 use anyhow::{bail, Result};
 use bevy::prelude::*;
 use fastrand::Rng;

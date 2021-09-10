@@ -1,7 +1,5 @@
-use crate::{
-    ascii_tilemap_plugin::DrawContext, LayerId, DISPLAY_HEIGHT, DISPLAY_WIDTH, HEIGHT, TILE_HEIGHT,
-    TILE_WIDTH, WIDTH,
-};
+use crate::{LayerId, DISPLAY_HEIGHT, DISPLAY_WIDTH, HEIGHT, TILE_HEIGHT, TILE_WIDTH, WIDTH};
+use ascii_tilemap_plugin::DrawContext;
 
 use bevy::{
     diagnostic::{Diagnostic, Diagnostics, FrameTimeDiagnosticsPlugin},
@@ -144,6 +142,7 @@ fn update_cursor(mut cursor_pos: ResMut<CursorPos>, windows: Res<Windows>) {
         .get_primary()
         .and_then(Window::cursor_position)
         .map(|cursor_position| {
+            #[allow(clippy::cast_precision_loss)]
             let mut pos = Vec2::new(
                 (cursor_position.x / (TILE_WIDTH as f32)).floor(),
                 (cursor_position.y / (TILE_HEIGHT as f32)).floor(),

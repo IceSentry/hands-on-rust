@@ -1,7 +1,4 @@
-use bevy::prelude::*;
-
 use crate::{
-    ascii_tilemap_plugin::DrawContext,
     rusty_dungeon_plugin::{
         camera::Camera,
         components::{Health, Name},
@@ -9,6 +6,8 @@ use crate::{
     },
     LayerId,
 };
+use ascii_tilemap_plugin::DrawContext;
+use bevy::prelude::*;
 
 pub fn tooltips(
     mut ctx: DrawContext,

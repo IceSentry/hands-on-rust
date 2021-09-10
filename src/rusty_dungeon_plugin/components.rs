@@ -1,4 +1,4 @@
-use crate::ascii_tilemap_plugin::color::GlyphColor;
+use ascii_tilemap_plugin::color::GlyphColor;
 use bevy::prelude::*;
 
 #[derive(Debug, Clone, Copy)]

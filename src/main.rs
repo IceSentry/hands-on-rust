@@ -1,12 +1,7 @@
 #![warn(clippy::pedantic)]
 #![allow(
-    clippy::too_many_arguments,
-    clippy::type_complexity,
     clippy::needless_pass_by_value,
     clippy::default_trait_access,
-    clippy::cast_possible_truncation,
-    clippy::cast_precision_loss,
-    clippy::cast_sign_loss,
     clippy::module_name_repetitions
 )]
 
@@ -14,9 +9,8 @@ use ascii_tilemap_plugin::AsciiTilemapPlugin;
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
 use bevy_egui::EguiPlugin;
 
-use crate::ascii_tilemap_plugin::{LayerDataBuilder, TilemapBuilder};
+use ascii_tilemap_plugin::{LayerDataBuilder, TilemapBuilder};
 
-mod ascii_tilemap_plugin;
 mod flappy_plugin;
 mod profiler_plugin;
 mod rusty_dungeon_plugin;
@@ -30,7 +24,9 @@ pub const DISPLAY_HEIGHT: u32 = HEIGHT / 2;
 pub const TILE_WIDTH: u32 = 32;
 pub const TILE_HEIGHT: u32 = 32;
 
+#[allow(clippy::cast_precision_loss)]
 pub const WINDOW_WIDTH: f32 = DISPLAY_WIDTH as f32 * TILE_WIDTH as f32;
+#[allow(clippy::cast_precision_loss)]
 pub const WINDOW_HEIGHT: f32 = DISPLAY_HEIGHT as f32 * TILE_HEIGHT as f32;
 
 pub enum LayerId {
@@ -66,6 +62,7 @@ fn main() {
         .add_system(bevy::input::system::exit_on_esc_system.system())
         .add_plugin(AsciiTilemapPlugin)
         .insert_resource(
+            #[allow(clippy::cast_precision_loss)]
             TilemapBuilder::new()
                 .with_layer(
                     LayerDataBuilder::new(LayerId::Map)

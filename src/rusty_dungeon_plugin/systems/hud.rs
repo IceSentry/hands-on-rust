@@ -1,11 +1,11 @@
-use bevy::prelude::*;
-
 use crate::{
-    ascii_tilemap_plugin::DrawContext,
     rusty_dungeon_plugin::components::{Health, Player},
     LayerId, WIDTH,
 };
+use ascii_tilemap_plugin::DrawContext;
+use bevy::prelude::*;
 
+#[allow(clippy::cast_sign_loss)]
 pub fn hud(mut ctx: DrawContext, query: Query<&Health, With<Player>>) {
     let health = query.single().expect("no health for player");
     ctx.set_active_layer(LayerId::Hud as u8);

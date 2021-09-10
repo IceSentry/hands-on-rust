@@ -10,6 +10,7 @@ pub struct Rect {
 
 impl Rect {
     /// Creates a Rect with the x,y at the bottom left and the given dimensions
+    #[must_use]
     pub fn with_dimension(x: u32, y: u32, width: u32, height: u32) -> Self {
         Self {
             x_left: x,
@@ -20,6 +21,7 @@ impl Rect {
     }
 
     /// Returns true if this intersects with another Rect
+    #[must_use]
     pub fn intersect(&self, other: &Rect) -> bool {
         self.x_left <= other.x_right
             && self.x_right >= other.x_left
@@ -28,6 +30,7 @@ impl Rect {
     }
 
     /// Returns the center of the Rect
+    #[must_use]
     pub fn center(&self) -> UVec2 {
         UVec2::new(
             (self.x_left + self.x_right) / 2,
@@ -37,6 +40,7 @@ impl Rect {
 
     /// Returns true if a point is inside the Rect
     #[allow(unused)]
+    #[must_use]
     pub fn point_in_rect(&self, point: UVec2) -> bool {
         point.x >= self.x_left
             && point.x < self.x_right
@@ -45,6 +49,7 @@ impl Rect {
     }
 
     /// Returns an iterator that iterates over each points inside the Rect
+    #[must_use]
     pub fn points(&self) -> Points {
         Points {
             curr_index: 0,
@@ -56,11 +61,17 @@ impl Rect {
     }
 
     /// Returns the Rect width
+    #[must_use]
+    #[allow(clippy::cast_possible_truncation)]
+    #[allow(clippy::cast_sign_loss)]
     pub fn width(&self) -> u32 {
         i64::abs(i64::from(self.x_right) - i64::from(self.x_left)) as u32
     }
 
     /// Returns the Rect height
+    #[must_use]
+    #[allow(clippy::cast_possible_truncation)]
+    #[allow(clippy::cast_sign_loss)]
     pub fn height(&self) -> u32 {
         i64::abs(i64::from(self.y_top) - i64::from(self.y_bottom)) as u32
     }

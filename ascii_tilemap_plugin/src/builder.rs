@@ -7,6 +7,7 @@ pub struct TilemapBuilder {
 }
 
 impl TilemapBuilder {
+    #[must_use]
     pub fn new() -> Self {
         Self { layers: vec![] }
     }
@@ -18,6 +19,12 @@ impl TilemapBuilder {
     pub fn with_layer(&mut self, layer: &mut LayerDataBuilder) -> &mut Self {
         self.layers.push(layer.clone());
         self
+    }
+}
+
+impl Default for TilemapBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
