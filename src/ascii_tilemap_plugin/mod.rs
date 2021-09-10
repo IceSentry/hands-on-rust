@@ -1,5 +1,8 @@
 use bevy::{prelude::*, render::camera::ScalingMode};
-use bevy_ecs_tilemap::{Map, MapQuery, TileParent};
+use bevy_ecs_tilemap::{
+    ChunkPos, ChunkSize, LayerSettings, Map, MapQuery, MapSize, TextureSize, TileParent, TilePos,
+    TileSize,
+};
 
 use self::{
     draw_context::ActiveLayer,
@@ -32,6 +35,10 @@ impl Plugin for AsciiTilemapPlugin {
             .add_startup_system(setup.system())
             .add_startup_stage("tile_setup", SystemStage::parallel())
             .add_startup_system_to_stage("tile_setup", setup_tiles.system())
+            // .add_startup_stage("setup", SystemStage::parallel())
+            // .add_startup_stage_after("setup", "setup_tiles", SystemStage::parallel())
+            // .add_startup_system_to_stage("setup", setup.system())
+            // .add_startup_system_to_stage("setup_tiles", setup_tiles.system())
             .insert_resource(ActiveLayer(0));
     }
 }
@@ -77,11 +84,14 @@ fn setup(
     let map_entity = commands.spawn().id();
     let mut map = Map::new(0_u16, map_entity);
 
-    // always just use 1 chunk per layer since this is always going to be on screen anyway
-    let map_size = UVec2::new(1, 1);
     let mut render_layers = Vec::with_capacity(tilemap_builder.layers.len() * 2);
 
-    let mut build_layer = |layer_id, layer_settings, material_handle: Handle<ColorMaterial>| {
+    let mut build_layer = |layer_id,
+                           layer_settings: LayerSettings,
+                           material_handle: Handle<ColorMaterial>| {
+        // let mut layer_settings = layer_settings;
+        // layer_settings.layer_id = layer_id;
+
         let (mut layer_builder, layer_entity) = bevy_ecs_tilemap::LayerBuilder::new(
             &mut commands,
             layer_settings,
@@ -95,25 +105,29 @@ fn setup(
 
         let render_layer = vec![
             TileRenderData::default();
-            (layer_settings.chunk_size.x * layer_settings.chunk_size.y) as usize
+            (layer_settings.chunk_size.0 * layer_settings.chunk_size.1) as usize
         ];
-        // info!("layer_id: {} len: {}", layer_id, render_layer.len());
+        info!("layer_id: {} len: {}", layer_id, render_layer.len());
         render_layers.push(render_layer);
     };
+
+    // always just use 1 chunk per layer since this is always going to be on screen anyway
+    let map_size = MapSize(1, 1);
 
     for layer_builder_data in &tilemap_builder.layers {
         let layer_data = layer_builder_data.build_layer();
 
-        let chunk_size = layer_data.size;
         let tile_size = layer_builder_data.tile_size.expect("tile_size not set");
         let tilesheet_size = layer_builder_data
             .tilesheet_size
             .expect("tilesheet_size not set");
+        let texture_size = tilesheet_size * tile_size;
+
         let layer_settings = bevy_ecs_tilemap::LayerSettings::new(
             map_size,
-            chunk_size,
-            tile_size,
-            tilesheet_size * tile_size,
+            ChunkSize(layer_data.size.x, layer_data.size.y),
+            TileSize(tile_size.x, tile_size.y),
+            TextureSize(texture_size.x, texture_size.y),
         );
         let path = layer_builder_data
             .texture_path
@@ -125,7 +139,7 @@ fn setup(
         if layer_data.is_background_transparent {
             let mut layer_settings = layer_settings;
             // this should help iteration speed since we don't need to iterate as many tiles
-            layer_settings.chunk_size = UVec2::ZERO;
+            layer_settings.chunk_size = ChunkSize(0, 0);
             build_layer(
                 layer_data.background_id,
                 layer_settings,
@@ -176,29 +190,32 @@ pub struct TileData {
 
 fn setup_tiles(
     mut commands: Commands,
-    tile_query: Query<(Entity, &TileParent, &UVec2)>,
+    tile_query: Query<(Entity, &TileParent, &TilePos)>,
     layers: Query<&Layer>,
 ) {
+    let mut i = 0;
     tile_query.for_each(|(entity, tile_parent, pos)| {
+        i += 1;
         let layer = layers
             .iter()
             .find(|l| {
                 l.background_id == tile_parent.layer_id || l.foreground_id == tile_parent.layer_id
             })
             .expect("layer not found");
-        let index = (pos.y * layer.size.x + pos.x) as usize;
+        let index = (pos.1 * layer.size.x + pos.0) as usize;
         commands.entity(entity).insert(TileData {
             index,
             layer_id: tile_parent.layer_id as usize,
             chunk: tile_parent.chunk,
         });
     });
-    // info!("TileData added to tiles");
+    info!("TileData added to tiles {}", i);
 }
 
 fn process_command_buffer(layers: Query<&mut Layer>, mut render_layers: ResMut<RenderLayers>) {
     puffin::profile_function!();
     layers.for_each_mut(|mut layer| {
+        // info!("buffer len: {}", layer.command_buffer.len());
         for command in &layer.command_buffer {
             match *command {
                 DrawCommand::DrawTile {
@@ -250,7 +267,9 @@ fn _get_tile_entity(
     let map = map_query.single().expect("map not found");
     map.get_layer_entity(layer_id)
         .and_then(|layer_entity| layer_query.get(*layer_entity).ok())
-        .and_then(|layer| layer.get_chunk(UVec2::ZERO))
+        .and_then(|layer| layer.get_chunk(ChunkPos(0, 0)))
         .and_then(|chunk_entity| chunk_query.get(chunk_entity).ok())
-        .and_then(|chunk| chunk.get_tile_entity(chunk.to_chunk_pos(tile_pos)))
+        .and_then(|chunk| {
+            chunk.get_tile_entity(chunk.to_chunk_pos(TilePos(tile_pos.x, tile_pos.y)))
+        })
 }

@@ -58,7 +58,7 @@ fn main() {
             // vsync: false,
             ..Default::default()
         })
-        .insert_resource(ClearColor(Color::PINK))
+        // .insert_resource(ClearColor(Color::PINK))
         .add_plugins(DefaultPlugins)
         .add_plugin(EguiPlugin)
         .add_plugin(FrameTimeDiagnosticsPlugin::default())

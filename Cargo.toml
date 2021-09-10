@@ -13,11 +13,10 @@ bevy = { version = "0.5.0", default-features = false, features = [
     "png",
     "dynamic",
 ] }
-bevy_ecs_tilemap = { git = "https://github.com/StarArawn/bevy_ecs_tilemap.git/", rev = "93969ae426fdaa32be70625e6f725ad1cd7eddb1" }
+bevy_ecs_tilemap = { git = "https://github.com/StarArawn/bevy_ecs_tilemap.git/" }
 fastrand = "1.5.0"
 ntest = "0.7.3"
 anyhow = "1.0.43"
 bevy_egui = "0.7.0"
 puffin = "0.8.1"
 puffin_egui = "0.7.0"
-puffin_egui = "0.5.0"
