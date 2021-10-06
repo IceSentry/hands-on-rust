@@ -11,14 +11,17 @@ members = ["ascii_tilemap_plugin"]
 [dependencies]
 ascii_tilemap_plugin = { path = "ascii_tilemap_plugin" }
 bevy = { version = "0.5.0", default-features = false, features = [
-    "dynamic",
     "png",
+    "bevy_winit",
+    "bevy_wgpu",
+    "render",
+    "dynamic",
 ] }
 fastrand = "1.5.0"
 anyhow = "1.0.43"
 bevy_egui = "0.7.0"
-puffin_egui = "0.7.0"
-puffin = "0.8.1"
+puffin_egui = "0.8.0"
+puffin = "0.9.0"
 
 [dev-dependencies]
 ntest = "0.7.3"
