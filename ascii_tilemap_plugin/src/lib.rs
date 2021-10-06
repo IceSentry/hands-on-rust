@@ -11,8 +11,7 @@ use self::{
 };
 use bevy::{prelude::*, render::camera::ScalingMode};
 use bevy_ecs_tilemap::{
-    ChunkPos, ChunkSize, LayerSettings, Map, MapQuery, MapSize, TextureSize, TileParent, TilePos,
-    TileSize,
+    ChunkPos, ChunkSize, Map, MapQuery, MapSize, TextureSize, TileParent, TilePos, TileSize,
 };
 
 pub use builder::{LayerDataBuilder, TilemapBuilder};
@@ -38,13 +37,9 @@ impl Plugin for AsciiTilemapPlugin {
                     .with_system(process_command_buffer.system().before("render"))
                     .with_system(render::render.system().label("render")),
             )
-            .add_startup_system(setup.system())
+            .add_startup_system(setup.system().label("setup"))
             .add_startup_stage("tile_setup", SystemStage::parallel())
             .add_startup_system_to_stage("tile_setup", setup_tiles.system())
-            // .add_startup_stage("setup", SystemStage::parallel())
-            // .add_startup_stage_after("setup", "setup_tiles", SystemStage::parallel())
-            // .add_startup_system_to_stage("setup", setup.system())
-            // .add_startup_system_to_stage("setup_tiles", setup_tiles.system())
             .insert_resource(ActiveLayer(0));
     }
 }
@@ -92,12 +87,7 @@ fn setup(
 
     let mut render_layers = Vec::with_capacity(tilemap_builder.layers.len() * 2);
 
-    let mut build_layer = |layer_id,
-                           layer_settings: LayerSettings,
-                           material_handle: Handle<ColorMaterial>| {
-        // let mut layer_settings = layer_settings;
-        // layer_settings.layer_id = layer_id;
-
+    let mut build_layer = |layer_id, layer_settings, material_handle: Handle<ColorMaterial>| {
         let (mut layer_builder, layer_entity) = bevy_ecs_tilemap::LayerBuilder::new(
             &mut commands,
             layer_settings,

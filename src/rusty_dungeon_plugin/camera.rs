@@ -17,10 +17,11 @@ impl Camera {
             right_x: player_position.x + (display_width / 2),
             top_y: player_position.y - (display_height / 2),
             bottom_y: player_position.y + (display_height / 2),
-            display_height,
             display_width,
+            display_height,
         }
     }
+
     pub fn on_player_move(&mut self, player_position: IVec2) {
         self.left_x = player_position.x - (self.display_width / 2);
         self.right_x = player_position.x + (self.display_width / 2);
