@@ -124,7 +124,7 @@ fn startup(mut commands: Commands) {
     commands.insert_resource(CursorPos(None));
 
     spawn_player(&mut commands, player_start);
-    for pos in rooms.iter().skip(1).map(|r| r.center()) {
+    for pos in rooms.iter().skip(1).map(ascii_tilemap_plugin::geometry::Rect::center) {
         spawn_monster(&mut commands, &mut rng, pos);
     }
 

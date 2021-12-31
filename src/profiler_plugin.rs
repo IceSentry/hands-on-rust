@@ -27,7 +27,7 @@ fn profiler_ui(egui_context: Res<EguiContext>, profiler_gui_enabled: Res<Profile
     if profiler_gui_enabled.0 {
         bevy_egui::egui::Window::new("Profiler")
             .default_size([800., 500.])
-            .show(egui_context.ctx(), |ui| puffin_egui::profiler_ui(ui));
+            .show(egui_context.ctx(), puffin_egui::profiler_ui);
     }
 }
 

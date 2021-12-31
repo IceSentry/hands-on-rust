@@ -12,6 +12,7 @@ impl TilemapBuilder {
         Self { layers: vec![] }
     }
 
+    #[must_use]
     pub fn build(&mut self) -> Self {
         self.clone()
     }
