@@ -1,18 +1,18 @@
 use crate::rusty_dungeon_plugin::{
-    components::{Enemy, Health, Player, WantsToAttack, WantsToMove},
+    components::{Enemy, Health, Player, Position, WantsToAttack, WantsToMove},
     TurnState,
 };
 use bevy::{input::keyboard::KeyboardInput, prelude::*};
 
 pub fn player_input(
     mut commands: Commands,
-    player_query: Query<(Entity, &UVec2), With<Player>>,
-    enemy_query: Query<(Entity, &UVec2), With<Enemy>>,
+    mut player_query: Query<(Entity, &Position), With<Player>>,
+    enemy_query: Query<(Entity, &Position), With<Enemy>>,
     mut player_health_query: Query<&mut Health, With<Player>>,
     mut turn_state: ResMut<State<TurnState>>,
     mut keyboard_input_events: EventReader<KeyboardInput>,
 ) {
-    puffin::profile_function!();
+    // puffin::profile_function!();
     // Only process the first event
     if let Some(event) = keyboard_input_events.iter().find(|x| x.state.is_pressed()) {
         let delta = match event.key_code {
@@ -24,7 +24,7 @@ pub fn player_input(
         };
 
         player_query.for_each_mut(|(player, position)| {
-            let destination = (position.as_f32() + delta).as_u32();
+            let destination = Position((position.0.as_vec2() + delta).as_uvec2());
             let mut did_something = false;
             if delta.x != 0. || delta.y != 0. {
                 let mut hit_something = false;

@@ -1,4 +1,5 @@
 use crate::ascii_tilemap_plugin::DrawContext;
+use crate::rusty_dungeon_plugin::components::Position;
 use crate::{
     rusty_dungeon_plugin::{
         camera::Camera,
@@ -11,7 +12,7 @@ use bevy::prelude::*;
 
 pub fn tooltips(
     mut ctx: DrawContext,
-    query: Query<(Entity, &UVec2, &Name)>,
+    query: Query<(Entity, &Position, &Name)>,
     health_query: Query<&Health>,
     cursor_pos: Res<CursorPos>,
     camera: Res<Camera>,
@@ -20,12 +21,15 @@ pub fn tooltips(
         Some(cursor_pos) => cursor_pos,
         _ => return,
     };
-    puffin::profile_function!();
+    // puffin::profile_function!();
     ctx.set_active_layer(LayerId::Hud as u8);
 
     let offset = IVec2::new(camera.left_x, camera.top_y);
-    let map_pos = cursor_position.as_i32() + offset;
-    for (entity, _, name) in query.iter().filter(|(_, pos, _)| **pos == map_pos.as_u32()) {
+    let map_pos = cursor_position.as_ivec2() + offset;
+    for (entity, _, name) in query
+        .iter()
+        .filter(|(_, pos, _)| pos.0 == map_pos.as_uvec2())
+    {
         let screen_pos = cursor_position * 2;
         let display = if let Ok(health) = health_query.get(entity) {
             format!("{} : {} hp", name.0, health.current)

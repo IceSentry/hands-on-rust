@@ -7,7 +7,7 @@ use bevy::prelude::*;
 
 #[allow(clippy::cast_sign_loss)]
 pub fn hud(mut ctx: DrawContext, query: Query<&Health, With<Player>>) {
-    let health = query.single().expect("no health for player");
+    let health = query.single();
     ctx.set_active_layer(LayerId::Hud as u8);
     ctx.print_centered(1, "Explore the dungeon. WASD or arrow keys to move.");
     ctx.bar_horizontal(

@@ -7,12 +7,12 @@
 
 mod ascii_tilemap_plugin;
 mod flappy_plugin;
-mod profiler_plugin;
+// mod profiler_plugin;
 mod rusty_dungeon_plugin;
 
 use crate::ascii_tilemap_plugin::{AsciiTilemapPlugin, LayerDataBuilder, TilemapBuilder};
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
-use bevy_egui::EguiPlugin;
+// use bevy_egui::EguiPlugin;
 
 pub const WIDTH: u32 = 80;
 pub const HEIGHT: u32 = 50;
@@ -42,7 +42,7 @@ impl From<LayerId> for u16 {
 }
 
 fn main() {
-    App::build()
+    App::new()
         .insert_resource(WindowDescriptor {
             // TODO find a way to control this by the plugin
             // if they don't match the map will not be aligned properly
@@ -50,15 +50,15 @@ fn main() {
             width: WINDOW_WIDTH,
             height: WINDOW_HEIGHT,
             title: String::from("hands on dungeon crawler"),
-            // vsync: false,
+            vsync: false,
             ..Default::default()
         })
         // .insert_resource(ClearColor(Color::PINK))
         .add_plugins(DefaultPlugins)
-        .add_plugin(EguiPlugin)
+        // .add_plugin(EguiPlugin)
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
-        .add_plugin(profiler_plugin::ProfilerPlugin)
-        .add_system(bevy::input::system::exit_on_esc_system.system())
+        // .add_plugin(profiler_plugin::ProfilerPlugin)
+        .add_system(bevy::input::system::exit_on_esc_system)
         .add_plugin(AsciiTilemapPlugin)
         .insert_resource(
             #[allow(clippy::cast_precision_loss)]

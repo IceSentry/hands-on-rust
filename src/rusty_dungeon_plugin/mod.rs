@@ -1,4 +1,5 @@
 use crate::ascii_tilemap_plugin::{geometry::Rect, DrawContext};
+use crate::rusty_dungeon_plugin::components::Position;
 use crate::{LayerId, DISPLAY_HEIGHT, DISPLAY_WIDTH, HEIGHT, TILE_HEIGHT, TILE_WIDTH, WIDTH};
 
 use bevy::{
@@ -46,8 +47,8 @@ enum Stage {
 
 pub struct RustyDungeonPlugin;
 impl Plugin for RustyDungeonPlugin {
-    fn build(&self, app: &mut AppBuilder) {
-        app.add_startup_system(startup.system())
+    fn build(&self, app: &mut App) {
+        app.add_startup_system(startup)
             // Setup stages
             .add_stage(Stage::Combat, SystemStage::parallel())
             .add_stage_before(Stage::Combat, Stage::BeforeCombat, SystemStage::parallel())
@@ -60,40 +61,40 @@ impl Plugin for RustyDungeonPlugin {
             // AwaitingInput
             .add_system_set_to_stage(
                 Stage::BeforeCombat,
-                SystemSet::on_update(TurnState::AwaitingInput).with_system(player_input.system()),
+                SystemSet::on_update(TurnState::AwaitingInput).with_system(player_input),
             )
             // PlayerTurn
             .add_system_set_to_stage(
                 Stage::Combat,
                 SystemSet::on_update(TurnState::PlayerTurn)
-                    .with_system(combat.system())
-                    .with_system(movement.system()),
+                    .with_system(combat)
+                    .with_system(movement),
             )
             // MonsterTurn
             .add_system_set_to_stage(
                 Stage::BeforeCombat,
-                SystemSet::on_update(TurnState::MonserTurn).with_system(random_move.system()),
+                SystemSet::on_update(TurnState::MonserTurn).with_system(random_move),
             )
             .add_system_set_to_stage(
                 Stage::Combat,
                 SystemSet::on_update(TurnState::MonserTurn)
-                    .with_system(combat.system())
-                    .with_system(movement.system()),
+                    .with_system(combat)
+                    .with_system(movement),
             )
             // EndTurn
             .add_system_set_to_stage(
                 Stage::EndTurn,
                 SystemSet::new()
                     .label(RenderSystem)
-                    .with_system(hud.system())
-                    .with_system(map_render.system())
-                    .with_system(entity_render.system())
-                    .with_system(tooltips.system())
-                    .with_system(diagnostic.system()),
+                    .with_system(hud)
+                    .with_system(map_render)
+                    .with_system(entity_render)
+                    .with_system(tooltips)
+                    .with_system(diagnostic),
             )
-            .add_system_to_stage(Stage::EndTurn, clear_screen.system().before(RenderSystem))
-            .add_system_to_stage(Stage::EndTurn, end_turn.system())
-            .add_system(update_cursor.system());
+            .add_system_to_stage(Stage::EndTurn, clear_screen.before(RenderSystem))
+            .add_system_to_stage(Stage::EndTurn, end_turn)
+            .add_system(update_cursor);
     }
 }
 
@@ -117,27 +118,27 @@ fn startup(mut commands: Commands) {
     commands.insert_resource(map);
     #[allow(clippy::cast_possible_wrap)]
     commands.insert_resource(Camera::new(
-        player_start.as_i32(),
+        player_start.as_ivec2(),
         DISPLAY_WIDTH as i32,
         DISPLAY_HEIGHT as i32,
     ));
     commands.insert_resource(CursorPos(None));
 
-    spawn_player(&mut commands, player_start);
+    spawn_player(&mut commands, Position(player_start));
     for pos in rooms.iter().skip(1).map(Rect::center) {
-        spawn_monster(&mut commands, &mut rng, pos);
+        spawn_monster(&mut commands, &mut rng, Position(pos));
     }
 
     info!("initializing rusty_dungeon...done {:?}", start.elapsed());
 }
 
 fn clear_screen(mut ctx: DrawContext) {
-    puffin::profile_function!();
+    // puffin::profile_function!();
     ctx.cls_all_layers();
 }
 
 fn update_cursor(mut cursor_pos: ResMut<CursorPos>, windows: Res<Windows>) {
-    puffin::profile_function!();
+    // puffin::profile_function!();
     cursor_pos.0 = windows
         .get_primary()
         .and_then(Window::cursor_position)
@@ -147,7 +148,7 @@ fn update_cursor(mut cursor_pos: ResMut<CursorPos>, windows: Res<Windows>) {
                 (cursor_position.x / (TILE_WIDTH as f32)).floor(),
                 (cursor_position.y / (TILE_HEIGHT as f32)).floor(),
             )
-            .as_u32();
+            .as_uvec2();
 
             if pos.y > DISPLAY_HEIGHT - 1 {
                 pos.y = 0;
@@ -159,7 +160,7 @@ fn update_cursor(mut cursor_pos: ResMut<CursorPos>, windows: Res<Windows>) {
 }
 
 fn diagnostic(mut ctx: DrawContext, diagnostics: Res<Diagnostics>) {
-    puffin::profile_function!();
+    // puffin::profile_function!();
     if let Some(fps) = diagnostics
         .get(FrameTimeDiagnosticsPlugin::FPS)
         .and_then(Diagnostic::value)

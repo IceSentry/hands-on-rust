@@ -7,7 +7,7 @@ pub fn combat(
     attackers: Query<(Entity, &WantsToAttack)>,
     mut health: Query<&mut Health>,
 ) {
-    puffin::profile_function!();
+    // puffin::profile_function!();
     let victims = attackers
         .iter()
         .map(|(entity, attack)| (entity, attack.victim))

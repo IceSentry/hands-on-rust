@@ -25,10 +25,10 @@ impl Default for TileRenderData {
 
 pub fn render(
     mut chunk_query: Query<&mut Chunk>,
-    tile_query: Query<(&mut Tile, &TileData)>,
+    mut tile_query: Query<(&mut Tile, &TileData)>,
     render_layers: Res<RenderLayers>,
 ) {
-    puffin::profile_function!();
+    // puffin::profile_function!();
     let mut chunks = HashSet::default();
     tile_query.for_each_mut(|(mut tile, tile_data)| {
         let tile_render_data = &render_layers[tile_data.layer_id][tile_data.index];
@@ -41,7 +41,7 @@ pub fn render(
         }
     });
     {
-        puffin::profile_scope!("chunk needs remesh");
+        // puffin::profile_scope!("chunk needs remesh");
         for chunk_entity in chunks.drain() {
             if let Ok(mut chunk) = chunk_query.get_mut(chunk_entity) {
                 chunk.needs_remesh = true;

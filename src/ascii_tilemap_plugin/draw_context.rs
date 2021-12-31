@@ -7,13 +7,13 @@ use super::{DrawCommand, Layer, LayerEntities};
 pub struct ActiveLayer(pub u16);
 
 #[derive(SystemParam)]
-pub struct DrawContext<'a> {
-    layers: Query<'a, &'static mut Layer>,
-    active_layer: ResMut<'a, ActiveLayer>,
-    layer_entities: Res<'a, LayerEntities>,
+pub struct DrawContext<'w, 's> {
+    layers: Query<'w, 's, &'static mut Layer>,
+    active_layer: ResMut<'w, ActiveLayer>,
+    layer_entities: Res<'w, LayerEntities>,
 }
 
-impl<'a> DrawContext<'a> {
+impl<'world, 'state> DrawContext<'world, 'state> {
     pub fn set(&mut self, x: u32, y: u32, background: Color, foreground: Color, glyph: char) {
         let entity = self.layer_entities[self.active_layer.0 as usize];
         if let Ok(mut layer) = self.layers.get_mut(entity) {

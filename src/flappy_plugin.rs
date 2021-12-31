@@ -13,27 +13,22 @@ enum GameState {
 pub struct FlappyPlugin;
 
 impl Plugin for FlappyPlugin {
-    fn build(&self, app: &mut AppBuilder) {
+    fn build(&self, app: &mut App) {
         app.add_state(GameState::Menu)
             .add_system_set(
-                SystemSet::on_update(GameState::Menu)
-                    .with_system(menu.system().before(TilemapDrawing)),
+                SystemSet::on_update(GameState::Menu).with_system(menu.before(TilemapDrawing)),
             )
-            .add_system_set(SystemSet::on_exit(GameState::Menu).with_system(clear_input.system()))
+            .add_system_set(SystemSet::on_exit(GameState::Menu).with_system(clear_input))
             .add_system_set(
-                SystemSet::on_update(GameState::Playing)
-                    .with_system(play.system().before(TilemapDrawing)),
+                SystemSet::on_update(GameState::Playing).with_system(play.before(TilemapDrawing)),
             )
+            .add_system_set(SystemSet::on_exit(GameState::Playing).with_system(clear_input))
             .add_system_set(
-                SystemSet::on_exit(GameState::Playing).with_system(clear_input.system()),
+                SystemSet::on_update(GameState::End).with_system(end.before(TilemapDrawing)),
             )
-            .add_system_set(
-                SystemSet::on_update(GameState::End)
-                    .with_system(end.system().before(TilemapDrawing)),
-            )
-            .add_system_set(SystemSet::on_exit(GameState::End).with_system(clear_input.system()))
+            .add_system_set(SystemSet::on_exit(GameState::End).with_system(clear_input))
             .add_event::<RestartEvent>()
-            .add_system(restart.system())
+            .add_system(restart)
             .insert_resource(Player::new(5, 25))
             .insert_resource(FrameTime(0.0))
             .insert_resource(Score(0))
@@ -125,8 +120,8 @@ impl Obstacle {
 }
 
 fn clear_input(mut keyboard_input: ResMut<Input<KeyCode>>) {
-    puffin::profile_function!();
-    keyboard_input.update();
+    // puffin::profile_function!();
+    keyboard_input.clear();
 }
 
 fn restart(
@@ -136,7 +131,7 @@ fn restart(
     mut obstacle: ResMut<Obstacle>,
     mut score: ResMut<Score>,
 ) {
-    puffin::profile_function!();
+    // puffin::profile_function!();
     if events.iter().count() == 0 {
         return;
     }
@@ -153,7 +148,7 @@ fn menu(
     mut app_exit_events: EventWriter<AppExit>,
     mut restart_events: EventWriter<RestartEvent>,
 ) {
-    puffin::profile_function!();
+    // puffin::profile_function!();
     ctx.cls();
     ctx.print_centered(5, "Welcome to Flappy Dragon");
     ctx.print_centered(8, "(P) Play Game");
@@ -177,7 +172,7 @@ fn play(
     mut score: ResMut<Score>,
     keyboard_input: Res<Input<KeyCode>>,
 ) {
-    puffin::profile_function!();
+    // puffin::profile_function!();
     ctx.cls();
     frame_time.0 += time.delta_seconds();
     if frame_time.0 > FRAME_DURATION {
@@ -211,7 +206,7 @@ fn end(
     mut restart_events: EventWriter<RestartEvent>,
     score: Res<Score>,
 ) {
-    puffin::profile_function!();
+    // puffin::profile_function!();
     ctx.cls();
     ctx.print_centered(5, "You are dead");
     ctx.print_centered(6, &format!("You earned {} points", score.0));

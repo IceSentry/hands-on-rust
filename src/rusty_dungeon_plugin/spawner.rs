@@ -1,10 +1,10 @@
 use bevy::prelude::*;
 use fastrand::Rng;
 
-use super::components::{Enemy, Health, MovingRandomly, Name, Player, Render};
+use super::components::{Enemy, Health, MovingRandomly, Name, Player, Position, Render};
 use crate::ascii_tilemap_plugin::color::GlyphColor;
 
-pub fn spawn_player(commands: &mut Commands, position: UVec2) {
+pub fn spawn_player(commands: &mut Commands, position: Position) {
     commands
         .spawn()
         .insert(Player)
@@ -19,7 +19,7 @@ pub fn spawn_player(commands: &mut Commands, position: UVec2) {
         });
 }
 
-pub fn spawn_monster(commands: &mut Commands, rng: &mut Rng, position: UVec2) {
+pub fn spawn_monster(commands: &mut Commands, rng: &mut Rng, position: Position) {
     let (hp, name, glyph) = match rng.u32(1..10) {
         1..=8 => goblin(),
         _ => orc(),

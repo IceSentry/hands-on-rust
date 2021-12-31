@@ -5,6 +5,8 @@ use bevy::prelude::*;
 use fastrand::Rng;
 use std::ops::Range;
 
+use super::components::Position;
+
 #[derive(Copy, Clone, PartialEq)]
 pub enum TileType {
     Wall,
@@ -33,27 +35,27 @@ impl Map {
         }
     }
 
-    pub fn set_tile(&mut self, position: UVec2, tile: TileType) {
+    pub fn set_tile(&mut self, position: Position, tile: TileType) {
         if let Some(index) = self.try_index(position) {
             self.tiles[index] = tile;
         }
     }
 
-    pub fn get_tile(&self, position: UVec2) -> Option<TileType> {
+    pub fn get_tile(&self, position: Position) -> Option<TileType> {
         self.try_index(position).map(|index| self.tiles[index])
     }
 
-    pub fn in_bounds(&self, point: UVec2) -> bool {
-        point.x < self.width && point.y < self.height
+    pub fn in_bounds(&self, point: Position) -> bool {
+        point.0.x < self.width && point.0.y < self.height
     }
 
-    pub fn can_enter_tile(&self, point: UVec2) -> bool {
+    pub fn can_enter_tile(&self, point: Position) -> bool {
         self.in_bounds(point) && self.get_tile(point) == Some(TileType::Floor)
     }
 
-    fn try_index(&self, point: UVec2) -> Option<usize> {
+    fn try_index(&self, point: Position) -> Option<usize> {
         if self.in_bounds(point) {
-            Some(((point.y * self.width) + point.x) as usize)
+            Some(((point.0.y * self.width) + point.0.x) as usize)
         } else {
             None
         }
@@ -99,7 +101,7 @@ impl<'a> MapBuilder<'a> {
 
             if !self.rooms.iter().any(|r| r.intersect(&room)) {
                 for point in room.points() {
-                    map.set_tile(point, TileType::Floor);
+                    map.set_tile(Position(point), TileType::Floor);
                 }
                 self.rooms.push(room);
             }
@@ -110,14 +112,14 @@ impl<'a> MapBuilder<'a> {
     fn build_vertical_tunnels(map: &mut Map, y1: u32, y2: u32, x: u32) {
         use std::cmp::{max, min};
         for y in min(y1, y2)..=max(y1, y2) {
-            map.set_tile(UVec2::new(x, y), TileType::Floor);
+            map.set_tile(Position(UVec2::new(x, y)), TileType::Floor);
         }
     }
 
     fn build_horizontal_tunnels(map: &mut Map, x1: u32, x2: u32, y: u32) {
         use std::cmp::{max, min};
         for x in min(x1, x2)..=max(x1, x2) {
-            map.set_tile(UVec2::new(x, y), TileType::Floor);
+            map.set_tile(Position(UVec2::new(x, y)), TileType::Floor);
         }
     }
 
