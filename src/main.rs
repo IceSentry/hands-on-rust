@@ -5,15 +5,14 @@
     clippy::module_name_repetitions
 )]
 
-use ascii_tilemap_plugin::AsciiTilemapPlugin;
-use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
-use bevy_egui::EguiPlugin;
-
-use ascii_tilemap_plugin::{LayerDataBuilder, TilemapBuilder};
-
+mod ascii_tilemap_plugin;
 mod flappy_plugin;
 mod profiler_plugin;
 mod rusty_dungeon_plugin;
+
+use crate::ascii_tilemap_plugin::{AsciiTilemapPlugin, LayerDataBuilder, TilemapBuilder};
+use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
+use bevy_egui::EguiPlugin;
 
 pub const WIDTH: u32 = 80;
 pub const HEIGHT: u32 = 50;

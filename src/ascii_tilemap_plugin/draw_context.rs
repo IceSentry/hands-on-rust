@@ -1,8 +1,7 @@
-use crate::DrawCommand;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 
-use super::{Layer, LayerEntities};
+use super::{DrawCommand, Layer, LayerEntities};
 
 #[derive(Debug, Clone)]
 pub struct ActiveLayer(pub u16);

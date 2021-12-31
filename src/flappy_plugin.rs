@@ -1,7 +1,7 @@
 use bevy::{app::AppExit, prelude::*};
 
+use crate::ascii_tilemap_plugin::{DrawContext, TilemapDrawing};
 use crate::{HEIGHT, WIDTH};
-use ascii_tilemap_plugin::{DrawContext, TilemapDrawing};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 enum GameState {

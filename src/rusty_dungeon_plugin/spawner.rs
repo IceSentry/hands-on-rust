@@ -1,7 +1,8 @@
-use super::components::{Enemy, Health, MovingRandomly, Name, Player, Render};
-use ascii_tilemap_plugin::color::GlyphColor;
 use bevy::prelude::*;
 use fastrand::Rng;
+
+use super::components::{Enemy, Health, MovingRandomly, Name, Player, Render};
+use crate::ascii_tilemap_plugin::color::GlyphColor;
 
 pub fn spawn_player(commands: &mut Commands, position: UVec2) {
     commands

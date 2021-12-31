@@ -1,3 +1,4 @@
+use crate::ascii_tilemap_plugin::geometry::Rect;
 use crate::{HEIGHT, WIDTH};
 use anyhow::{bail, Result};
 use bevy::prelude::*;
@@ -61,7 +62,7 @@ impl Map {
 
 #[allow(clippy::module_name_repetitions)]
 pub struct MapBuilder<'a> {
-    rooms: Vec<ascii_tilemap_plugin::geometry::Rect>,
+    rooms: Vec<Rect>,
     width: u32,
     height: u32,
     room_size: Range<u32>,
@@ -89,7 +90,7 @@ impl<'a> MapBuilder<'a> {
         let mut iteration = 0;
         let room_count = self.rooms.capacity();
         while self.rooms.len() < room_count && iteration < room_count * 2 {
-            let room = ascii_tilemap_plugin::geometry::Rect::with_dimension(
+            let room = Rect::with_dimension(
                 self.rng.u32(0..self.width - self.room_size.end),
                 self.rng.u32(0..self.height - self.room_size.end),
                 self.rng.u32(self.room_size.clone()),
@@ -138,7 +139,7 @@ impl<'a> MapBuilder<'a> {
         }
     }
 
-    pub fn build(&mut self) -> Result<(Map, UVec2, Vec<ascii_tilemap_plugin::geometry::Rect>)> {
+    pub fn build(&mut self) -> Result<(Map, UVec2, Vec<Rect>)> {
         if self.width <= self.room_size.end || self.height <= self.room_size.end {
             bail!(
                 "width and height must be higher than max room_size {}",

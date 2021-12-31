@@ -1,3 +1,4 @@
+use crate::ascii_tilemap_plugin::DrawContext;
 use crate::{
     rusty_dungeon_plugin::{
         camera::Camera,
@@ -5,7 +6,6 @@ use crate::{
     },
     LayerId,
 };
-use ascii_tilemap_plugin::DrawContext;
 use bevy::prelude::*;
 
 pub fn map_render(mut ctx: DrawContext, map: Res<Map>, camera: Res<Camera>) {

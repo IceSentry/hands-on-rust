@@ -1,5 +1,5 @@
+use crate::ascii_tilemap_plugin::{geometry::Rect, DrawContext};
 use crate::{LayerId, DISPLAY_HEIGHT, DISPLAY_WIDTH, HEIGHT, TILE_HEIGHT, TILE_WIDTH, WIDTH};
-use ascii_tilemap_plugin::DrawContext;
 
 use bevy::{
     diagnostic::{Diagnostic, Diagnostics, FrameTimeDiagnosticsPlugin},
@@ -124,7 +124,7 @@ fn startup(mut commands: Commands) {
     commands.insert_resource(CursorPos(None));
 
     spawn_player(&mut commands, player_start);
-    for pos in rooms.iter().skip(1).map(ascii_tilemap_plugin::geometry::Rect::center) {
+    for pos in rooms.iter().skip(1).map(Rect::center) {
         spawn_monster(&mut commands, &mut rng, pos);
     }
 
