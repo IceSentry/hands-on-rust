@@ -7,8 +7,8 @@
 
 mod ascii_tilemap_plugin;
 mod flappy_plugin;
-// mod profiler_plugin;
 mod rusty_dungeon_plugin;
+// mod profiler_plugin;
 
 use crate::ascii_tilemap_plugin::{AsciiTilemapPlugin, LayerDataBuilder, TilemapBuilder};
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
@@ -50,7 +50,7 @@ fn main() {
             width: WINDOW_WIDTH,
             height: WINDOW_HEIGHT,
             title: String::from("hands on dungeon crawler"),
-            vsync: false,
+            // vsync: false,
             ..Default::default()
         })
         // .insert_resource(ClearColor(Color::PINK))
